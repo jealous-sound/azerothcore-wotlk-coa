@@ -115,7 +115,8 @@ def main():
                 raise AssertionError("Conflicting model was accepted")
             except ValueError:
                 pass
-    print("PASS: owned markers, native buttons, return/expiry, moving destination, teleport acknowledgement, cleanup and data")
+    print("PASS: owned markers, silent return grant, native buttons, return/expiry, moving destination, "
+          "teleport acknowledgement, cleanup and data")
 
 
 if __name__ == "__main__":

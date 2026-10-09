@@ -1,0 +1,318 @@
+{
+  "schema": 1,
+  "name": "Warpdagger keeps one button: the client's own swap is preserved and its auto-placed copy is dropped (#6875)",
+  "contract": "#6875 'Warpdagger still cloning on PTR, even deleted Cache folder' is the level-10 form submission of the oldest Runemaster report (#4138, #4820, #5417, #6196, #6618, #6770), and it is level 10 because Spell.dbc makes Warpdagger 500287 a SpellLevel-10 one-member chain. The ability's natural shape: casting Warpdagger throws the dagger and the button flips to Warp (500587, or Echo Return 500272 from Echo Rune 500270); pressing the flipped button teleports you to the dagger and the button flips back. The residue behind the report is the client's own spellbook machinery: the 3.3.5 client prints a chat line for every SMSG_LEARNED_SPELL, SMSG_SUPERCEDED_SPELL and SMSG_REMOVED_SPELL and each of those appends or drops a spellbook row, and the swap used all three - the swap packet dropped the Warpdagger row (a one-spell class tab like the reporter's disappears with it while the dagger is out), the per-travel temporary learn was answered by an SMSG_REMOVED_SPELL ('You have unlearned Warp.' on every clear, including logins and map changes), and the row churn fed the auto-placer that cloned the button. This fix takes the shape the codebase already uses for transform abilities (venomancer-widows-kiss-stays-learned): the return spell is learned exactly once, when travel first needs it, and stays learned forever; travel itself sends no learn and no remove. The swap is a silent server-side temporary spell replacement (Player::SetTemporarySpellReplacement with announce off), and the button flips through SMSG_SET_ACTION_BUTTON_SPELL (0x76A), the server's own 'this button holds this spell' packet the client runs as PickupSpell/PlaceAction - the same flip a player dragging the spell onto the button would produce, with the spellbook untouched. AscensionRunemasterTravel::SweepButtonSwapCopies pre-erases the auto-placer's candidate buttons in the same batch as the swap so no copy can flash, and AscensionRunemasterTravelDropButtonCopies stays as the fallback that erases a copy that still lands while the swap window runs, without touching a second button the player placed deliberately. This scenario pins the whole shape on a level-10 Runemaster whose Warpdagger button the fixture placed at slot 3: the throw flips slot 3 to 500587 while the Warpdagger row and the client's knowledge of it never leave, the return spell is learned exactly once across two round trips, no SMSG_SUPERCEDED_SPELL and no SMSG_REMOVED_SPELL is ever sent, slots 4 and 5 stay empty, the recast teleports to the dagger and the button flips back to 500287 - the report is one extra button per swap, unlearned spam, and a class tab that blinks out while the dagger is out.",
+  "timeout_ms": 90000,
+  "players": [
+    {
+      "id": "runemaster",
+      "race": 1,
+      "class": 32,
+      "level": 10
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let login settle",
+      "ms": 3000
+    },
+    {
+      "action": "learn",
+      "label": "FIXTURE: own Warpdagger, the ability whose button the travel flips",
+      "actor": "runemaster",
+      "spell": 500287
+    },
+    {
+      "action": "set_action_button",
+      "label": "FIXTURE: the one button the travel has to flip and keep singular",
+      "actor": "runemaster",
+      "button": 3,
+      "spell": 500287
+    },
+    {
+      "action": "wait",
+      "label": "Let the learned ability reach the client",
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the server holds Warpdagger, so its cast and the travel check pass",
+      "actor": "runemaster",
+      "metric": "knows_spell",
+      "spell": 500287,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the client holds the Warpdagger slot",
+      "actor": "runemaster",
+      "metric": "client_knows_spell",
+      "spell": 500287,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the fixture button is the client's too",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 3,
+      "equals": 500287,
+      "within_ms": 5000
+    },
+    {
+      "action": "cast",
+      "label": "Throw the dagger: the button flips to Warp while the spellbook stays put",
+      "actor": "runemaster",
+      "spell": 500287
+    },
+    {
+      "action": "assert",
+      "label": "SETUP: the travel put the return spell in the travel spell's place",
+      "actor": "runemaster",
+      "metric": "temporary_spell_replacement",
+      "spell": 500287,
+      "equals": 500587,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: the return spell is learned exactly once, when travel first needed it",
+      "actor": "runemaster",
+      "metric": "client_knows_spell",
+      "spell": 500587,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: one learn line ever - and no unlearned line can follow",
+      "actor": "runemaster",
+      "metric": "spellbook_learned_alerts",
+      "spell": 500587,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: the Warpdagger row never left the spellbook, so the class tab stays",
+      "actor": "runemaster",
+      "metric": "client_knows_spell",
+      "spell": 500287,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: no swap packet - the spellbook never churns during travel",
+      "actor": "runemaster",
+      "metric": "spellbook_superseded_packets",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: no SMSG_REMOVED_SPELL ever, so the chat never says unlearned",
+      "actor": "runemaster",
+      "metric": "server_packets",
+      "opcode": 515,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: the button flipped to the return spell - the ability's natural behavior",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 3,
+      "equals": 500587,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: no auto-placed copy next to it",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 4,
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: and nothing on the next slot either",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 5,
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: every button holds a spell the client knows",
+      "actor": "runemaster",
+      "metric": "action_bar_unknown_spells",
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the recovery keeps running while the button reads Warp - the return is its own spell",
+      "actor": "runemaster",
+      "metric": "cooldown_ms",
+      "spell": 500287,
+      "min": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "cast",
+      "label": "Press the flipped button: teleport to the dagger and clear the travel",
+      "actor": "runemaster",
+      "spell": 500587
+    },
+    {
+      "action": "wait",
+      "label": "Let the travel clear",
+      "ms": 2500
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: the recast returned the travel spell to itself, so the travel is over",
+      "actor": "runemaster",
+      "metric": "temporary_spell_replacement",
+      "spell": 500287,
+      "equals": 500287,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: the button flipped back to Warpdagger",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 3,
+      "equals": 500287,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: still no copy after the return",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 4,
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: and nothing on the next slot",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 5,
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: the return spell stays learned after use - the spellbook row is stable",
+      "actor": "runemaster",
+      "metric": "client_knows_spell",
+      "spell": 500587,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: and Warpdagger is still there - the tab never blinked",
+      "actor": "runemaster",
+      "metric": "client_knows_spell",
+      "spell": 500287,
+      "equals": 1
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: still exactly one learn line across the round trip",
+      "actor": "runemaster",
+      "metric": "spellbook_learned_alerts",
+      "spell": 500587,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: and not one swap packet",
+      "actor": "runemaster",
+      "metric": "spellbook_superseded_packets",
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "cast",
+      "label": "Travel a second time: the reported pile-up is one extra button per swap",
+      "actor": "runemaster",
+      "spell": 500287
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: the second travel stands the return spell in again",
+      "actor": "runemaster",
+      "metric": "temporary_spell_replacement",
+      "spell": 500287,
+      "equals": 500587,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: and flips the same single button again",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 3,
+      "equals": 500587,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: with no copy beside it",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 4,
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: and nothing on the next slot",
+      "actor": "runemaster",
+      "metric": "action_button",
+      "button": 5,
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: the second travel learned nothing new",
+      "actor": "runemaster",
+      "metric": "spellbook_learned_alerts",
+      "spell": 500587,
+      "equals": 1,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: two round trips, zero swap packets",
+      "actor": "runemaster",
+      "metric": "spellbook_superseded_packets",
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "THE FIX: and zero removals - the chat never says unlearned",
+      "actor": "runemaster",
+      "metric": "server_packets",
+      "opcode": 515,
+      "equals": 0,
+      "within_ms": 5000
+    },
+    {
+      "action": "assert",
+      "label": "CONTROL: and every button still resolves client-side",
+      "actor": "runemaster",
+      "metric": "action_bar_unknown_spells",
+      "equals": 0,
+      "within_ms": 5000
+    }
+  ]
+}

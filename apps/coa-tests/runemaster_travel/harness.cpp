@@ -15,10 +15,16 @@ using uint32 = std::uint32_t;
 using int32 = std::int32_t;
 using SpellEffIndex = uint8;
 using Milliseconds = std::chrono::milliseconds;
+namespace GameTime
+{
+    std::chrono::milliseconds now{0};
+    std::chrono::milliseconds GetGameTimeMS() { return now; }
+}
 // NATIVE_ENUMS
 constexpr uint32 EFFECT_0 = 0, EFFECT_1 = 1, EFFECT_2 = 2, SPEC_MASK_ALL = 3;
 constexpr uint32 UNIT_CREATED_BY_SPELL = 1, SPELLMOD_DURATION = 1;
 constexpr uint32 REACT_PASSIVE = 0, SMSG_SUPERCEDED_SPELL = 1;
+constexpr uint8 MAX_ACTION_BUTTONS = 144, ACTION_BUTTON_SPELL = 0;
 constexpr int UNITHOOK_ON_AURA_REMOVE = 1, PLAYERHOOK_ON_LOGIN = 1, PLAYERHOOK_ON_LOGOUT = 2,
     PLAYERHOOK_ON_MAP_CHANGED = 3, PLAYERHOOK_ON_FORGOT_SPELL = 4, PLAYERHOOK_ON_UPDATE = 5;
 struct ObjectGuid
@@ -47,6 +53,7 @@ struct SpellInfo
 {
     uint32 Id = 0, SpellFamilyName = 38;
     int32 duration = 20000;
+    uint32 RecoveryTime = 0;
     SpellEffectInfo Effects[3];
     bool maskInitialized = false;
     int32 GetDuration() const { return duration; }
@@ -162,14 +169,23 @@ struct Creature : Unit
 struct TempSummon : Creature { };
 struct WorldPacket
 {
+    uint32 opcode = 0;
     std::vector<uint32> values;
-    WorldPacket(uint32, uint32) { }
+    WorldPacket(uint32 op, uint32) : opcode(op) { }
     WorldPacket& operator<<(uint32 value) { values.push_back(value); return *this; }
+    WorldPacket& operator<<(uint8 value) { values.push_back(value); return *this; }
 };
 struct Session
 {
-    std::vector<std::vector<uint32>> packets;
-    void SendPacket(WorldPacket* packet) { packets.push_back(packet->values); }
+    std::vector<std::pair<uint32, std::vector<uint32>>> packets;
+    void SendPacket(WorldPacket* packet) { packets.emplace_back(packet->opcode, packet->values); }
+};
+struct ActionButton
+{
+    uint32 action = 0;
+    uint8 type = 0;
+    uint32 GetAction() const { return action; }
+    uint8 GetType() const { return type; }
 };
 struct Player : Unit
 {
@@ -192,19 +208,54 @@ struct Player : Unit
     bool GetVehicle() const { return vehicle; }
     bool HasActiveSpell(uint32 id) const { auto it = spells.find(id); return it != spells.end() && it->second >= 0; }
     auto const& GetSpellMap() const { return spells; }
-    void learnSpell(uint32 id, bool temporary) { assert(temporary && !spells.contains(id)); spells[id] = 1; }
-    void removeSpell(uint32 id, uint32 mask, bool temporary)
+    uint32 announcedLearns = 0;
+    void learnSpell(uint32 id, bool temporary)
     {
-        assert(mask == SPEC_MASK_ALL && temporary);
-        ++removals;
-        auto it = spells.find(id);
-        if (it != spells.end() && it->second == 1)
-            spells.erase(it);
+        assert(!temporary);
+        ++announcedLearns;
+        spells[id] = 0;
     }
-    void SetTemporarySpellReplacement(uint32 original, uint32 replacement);
+    void removeSpell(uint32 id, uint32 mask, bool onlyTemporary)
+    {
+        assert(mask == SPEC_MASK_ALL && !onlyTemporary);
+        ++removals;
+        spells.erase(id);
+    }
+    void SetTemporarySpellReplacement(uint32 original, uint32 replacement, bool announce = true);
     uint32 GetTemporarySpellReplacement(uint32 original) const;
     Session* GetSession() { return &session; }
     void SendLearnPacket(uint32, bool, bool = false) { }
+    std::map<uint8, ActionButton> buttons;
+    uint32 barSends = 0;
+    ActionButton const* GetActionButton(uint8 slot) const
+    {
+        auto it = buttons.find(slot);
+        return it == buttons.end() ? nullptr : &it->second;
+    }
+    ActionButton* addActionButton(uint8 slot, uint32 action, uint8 type)
+    {
+        buttons[slot] = {action, type};
+        return &buttons[slot];
+    }
+    void SendActionButtons(uint8) { ++barSends; }
+    void removeActionButton(uint8 slot) { buttons.erase(slot); }
+    uint32 supersedePackets() const;
+    std::vector<std::pair<uint8, uint32>> sweepPackets() const;
+    std::vector<std::pair<uint8, uint32>> flipPackets() const;
+    std::map<uint32, uint32> cooldowns;
+    uint32 cooldownPackets = 0;
+    void RemoveSpellCooldown(uint32 id, bool update)
+    {
+        assert(update);
+        ++cooldownPackets;
+        cooldowns.erase(id);
+    }
+    void AddSpellCooldown(uint32 id, uint32 item, uint32 duration, bool needSend = false, bool spectator = false)
+    {
+        assert(item == 0 && needSend && !spectator);
+        ++cooldownPackets;
+        cooldowns[id] = duration;
+    }
     void ApplySpellMod(uint32, uint32 op, int32&) { assert(op == SPELLMOD_DURATION); }
     TempSummon* SummonCreature(uint32 entry, Position const& pos, TempSummonType type, uint32 duration = 0);
     Position GetFirstCollisionPosition(float distance, float angle)
@@ -280,6 +331,30 @@ struct PlayerScript
 #define RegisterSpellScript(name)
 #define RegisterCreatureAI(name)
 // ACTUAL_SOURCE
+uint32 Player::supersedePackets() const
+{
+    uint32 count = 0;
+    for (auto const& [opcode, values] : session.packets)
+        if (opcode == SMSG_SUPERCEDED_SPELL)
+            ++count;
+    return count;
+}
+std::vector<std::pair<uint8, uint32>> Player::sweepPackets() const
+{
+    std::vector<std::pair<uint8, uint32>> out;
+    for (auto const& [opcode, values] : session.packets)
+        if (opcode == SMSG_SET_ACTION_BUTTON_SPELL && values[1] == 0)
+            out.emplace_back(uint8(values[0]), values[1]);
+    return out;
+}
+std::vector<std::pair<uint8, uint32>> Player::flipPackets() const
+{
+    std::vector<std::pair<uint8, uint32>> out;
+    for (auto const& [opcode, values] : session.packets)
+        if (opcode == SMSG_SET_ACTION_BUTTON_SPELL && values[1] != 0)
+            out.emplace_back(uint8(values[0]), values[1]);
+    return out;
+}
 void Unit::RemoveAurasDueToSpell(uint32 id, ObjectGuid caster)
 {
     auto it = auras.find(id);
@@ -318,7 +393,12 @@ int main()
     player.position = {4, 5, 6, 1};
     player.spells[500270] = 0;
     player.spells[500287] = 0;
+    player.buttons[3] = {500270, ACTION_BUTTON_SPELL};
+    player.buttons[4] = {500287, ACTION_BUTTON_SPELL};
     manager.spells[500270].Id = 500270;
+    manager.spells[500270].RecoveryTime = 30000;
+    manager.spells[500287].Id = 500287;
+    manager.spells[500287].RecoveryTime = 30000;
     manager.spells[500606].Id = 500606;
     runemaster_travel_lifecycle lifecycle;
     runemaster_travel_auras auras;
@@ -333,7 +413,16 @@ int main()
     auto rune = FindMarker(&player, 500270);
     assert(rune && player.summons == 1 && rune->motion.idle && rune->createdBy == 500270);
     assert(rune->duration == 0 && rune->faction == 123 && rune->level == 40 && rune->react == REACT_PASSIVE);
-    assert(player.GetTemporarySpellReplacement(500270) == 500272 && player.spells.at(500272) == 1);
+    assert(player.GetTemporarySpellReplacement(500270) == 500272 && player.spells.at(500272) == 0);
+    assert(player.announcedLearns == 1);
+    assert(player.buttons.at(3).action == 500272 && player.buttons.size() == 2);
+    assert(player.barSends == 0);
+    assert(player.supersedePackets() == 0);
+    std::vector<std::pair<uint8, uint32>> const firstFlip = {{3, 500272}};
+    assert(player.flipPackets() == firstFlip);
+    std::vector<std::pair<uint8, uint32>> const firstSweep = {
+        {0, 0}, {12, 0}, {24, 0}, {36, 0}, {48, 0}, {60, 0}, {72, 0}, {84, 0}, {96, 0}, {108, 0}, {132, 0}};
+    assert(player.sweepPackets() == firstSweep);
     player.auras[500270] = {500270, player.guid};
     rune->ai->UpdateAI(25000);
     assert(!rune->removed);
@@ -345,8 +434,21 @@ int main()
     recall.Echo(0);
     assert(!recall.prevented && player.teleports == 1 && rune->removed);
     assert(player.teleportDestination == Position(4, 5, 6, 1));
-    assert(!player.spells.contains(500272) && !player.auras.contains(500270));
+    assert(player.spells.at(500272) == 0 && !player.auras.contains(500270));
     assert(player.GetTemporarySpellReplacement(500270) == 500270);
+    assert(player.buttons.at(3).action == 500270 && player.buttons.size() == 2);
+    assert(player.barSends == 0);
+    assert(player.supersedePackets() == 0);
+    assert(player.announcedLearns == 1);
+    GameTime::now += std::chrono::milliseconds(300);
+    lifecycle.OnPlayerUpdate(&player, 1);
+    assert(player.barSends == 1);
+    lifecycle.OnPlayerUpdate(&player, 1);
+    assert(player.barSends == 1);
+    auto flips = player.flipPackets();
+    assert(flips.size() == 2 && flips[1].first == 3 && flips[1].second == 500270);
+    auto sweeps = player.sweepPackets();
+    assert(sweeps.size() == 22 && std::equal(sweeps.begin() + 11, sweeps.end(), firstSweep.begin()));
     recall.Echo(0);
     assert(recall.prevented && player.teleports == 1);
     player.teleporting = false;
@@ -372,14 +474,18 @@ int main()
         assert(player.teleports == 2 && !FindMarker(&player, 500270));
     }
     player.spells[500272] = -1;
-    assert(!StartTravel(&player, 500270) && player.spells.at(500272) == -1);
+    assert(StartTravel(&player, 500270) && player.spells.at(500272) == 0);
+    ClearTravel(&player, 500270);
     player.spells.erase(500272);
     cast.info.Id = 500287;
     cast.SummonEcho(0);
     auto before = player.summons;
+    auto flipsBefore = player.flipPackets().size();
     cast.SummonDagger(0);
     assert(player.summons == before + 1);
     auto dagger = FindMarker(&player, 500287);
+    assert(player.buttons.at(4).action == 500587 && player.buttons.size() == 2);
+    assert(player.flipPackets().size() == flipsBefore + 1);
     assert(dagger && dagger->entry == 51335 && dagger->casts.back() == 500588);
     assert(dagger->motion.destination == player.collisionDestination && !dagger->motion.path);
     assert(dagger->motion.forced == FORCED_MOVEMENT_RUN && player.auras.contains(500289));
@@ -394,7 +500,9 @@ int main()
     assert(player.teleportDestination == Position(17, 0, 0, 1));
     assert(player.damageDestination == Position(17, 0, 0, 0));
     assert(player.position != player.damageDestination && player.casts.back() == 500495 && dagger->removed);
-    assert(!player.auras.contains(500289) && !player.spells.contains(500587));
+    assert(!player.auras.contains(500289) && player.spells.at(500587) == 0);
+    assert(player.buttons.at(4).action == 500287 && player.buttons.size() == 2);
+    assert(player.flipPackets().size() == flipsBefore + 2);
     before = uint32(player.casts.size());
     recall.Warp(0);
     assert(player.casts.size() == before);
@@ -410,7 +518,7 @@ int main()
     assert(FindMarker(&player, 500287) == next);
     next->ownerGuid = {99};
     lifecycle.OnPlayerUpdate(&player, 1);
-    assert(!next->removed && !player.spells.contains(500587));
+    assert(!next->removed && player.GetTemporarySpellReplacement(500287) == 500287 && player.spells.at(500587) == 0);
     for (bool Player::* blocked : {&Player::teleporting, &Player::flight, &Player::transport, &Player::vehicle})
     {
         player.*blocked = true;
@@ -422,26 +530,31 @@ int main()
         assert(StartTravel(&player, 500287));
         player.*required = false;
         lifecycle.OnPlayerUpdate(&player, 1);
-        assert(!player.spells.contains(500587));
+        assert(player.GetTemporarySpellReplacement(500287) == 500287);
         player.*required = true;
     }
     assert(StartTravel(&player, 500287));
     dagger = FindMarker(&player, 500287);
     player.map = &otherMap;
     lifecycle.OnPlayerMapChanged(&player);
-    assert(!player.spells.contains(500587));
+    assert(player.GetTemporarySpellReplacement(500287) == 500287 && player.spells.at(500587) == 0);
     dagger->ai->UpdateAI(500);
     assert(dagger->removed);
     player.map = &map;
     assert(StartTravel(&player, 500270));
     lifecycle.OnPlayerForgotSpell(&player, 500270);
     assert(!FindMarker(&player, 500270));
+    assert(!player.spells.contains(500272));
     assert(StartTravel(&player, 500287));
     lifecycle.OnPlayerLogout(&player);
     assert(!FindMarker(&player, 500287));
+    auto removalsBefore = player.removals;
     player.auras[500270] = {500270, player.guid};
     lifecycle.OnPlayerLogin(&player);
     assert(!player.auras.contains(500270));
+    assert(player.removals == removalsBefore);
+    assert(player.buttons.size() == 2);
+    assert(player.cooldownPackets == 0);
     player.cls = CLASS_RANGER;
     assert(!StartTravel(&player, 500270));
     SpellInfo info;
@@ -464,4 +577,42 @@ int main()
     info.Effects[1].Effect = 123;
     ApplyAscensionRunemasterTravelContracts(&info);
     assert(info.Effects[1].Effect == 123);
+    player.buttons.clear();
+    player.buttons[3] = {500287, ACTION_BUTTON_SPELL};
+    player.barSends = 0;
+    ArmButtonSwap(&player);
+    player.addActionButton(3, 500587, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 3, 500587, 500287);
+    player.addActionButton(4, 500587, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 4, 500587, 0);
+    assert(player.buttons.at(3).action == 500587 && !player.buttons.contains(4) && player.barSends == 1);
+    player.addActionButton(3, 500287, ACTION_BUTTON_SPELL);
+    ArmButtonSwap(&player);
+    player.addActionButton(4, 500587, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 4, 500587, 0);
+    assert(player.buttons.at(4).action == 500587 && player.barSends == 1);
+    player.addActionButton(3, 500587, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 3, 500587, 500287);
+    assert(player.buttons.at(3).action == 500587 && !player.buttons.contains(4) && player.barSends == 2);
+    player.buttons.clear();
+    player.buttons[3] = {500287, ACTION_BUTTON_SPELL};
+    player.buttons[10] = {500287, ACTION_BUTTON_SPELL};
+    ArmButtonSwap(&player);
+    player.addActionButton(3, 500587, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 3, 500587, 500287);
+    player.addActionButton(10, 500587, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 10, 500587, 500287);
+    player.addActionButton(4, 500587, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 4, 500587, 0);
+    assert(player.buttons.at(3).action == 500587 && player.buttons.at(10).action == 500587 &&
+        !player.buttons.contains(4) && player.barSends == 3);
+    GameTime::now += std::chrono::milliseconds(5000);
+    player.addActionButton(4, 500287, ACTION_BUTTON_SPELL);
+    AscensionRunemasterTravelDropButtonCopies(&player, 4, 500287, 0);
+    assert(player.buttons.at(4).action == 500287 && player.barSends == 3);
+    player.addActionButton(8, 6603, ACTION_BUTTON_SPELL);
+    player.addActionButton(9, 6603, ACTION_BUTTON_SPELL);
+    ArmButtonSwap(&player);
+    AscensionRunemasterTravelDropButtonCopies(&player, 9, 6603, 0);
+    assert(player.buttons.at(8).action == 6603 && player.buttons.at(9).action == 6603 && player.barSends == 3);
 }

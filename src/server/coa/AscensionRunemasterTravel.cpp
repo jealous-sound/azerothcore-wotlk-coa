@@ -2,6 +2,7 @@
 #include "AscensionRunemasterTalents.h"
 #include "Creature.h"
 #include "EventMap.h"
+#include "GameTime.h"
 #include "Map.h"
 #include "MotionMaster.h"
 #include "Player.h"
@@ -12,8 +13,12 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "TemporarySummon.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
+#include <algorithm>
 #include <map>
 #include <mutex>
+#include <vector>
 
 namespace
 {
@@ -43,12 +48,119 @@ enum RunemasterTravelEvents : uint32
     POINT_WARP_DESTINATION = 1
 };
 
+constexpr uint32 SMSG_SET_ACTION_BUTTON_SPELL = 0x076A;
+constexpr uint8 kClientPossessionFirstButton = 120, kClientPossessionLastButton = 131;
+
 std::mutex travelMutex;
 std::map<std::pair<ObjectGuid, uint32>, ObjectGuid> travelMarkers;
+
+struct ButtonSwapWindow
+{
+    uint32 untilMs = 0;
+    uint32 refreshDueMs = 0;
+    std::vector<uint8> swapped;
+};
+
+constexpr uint32 kButtonStateRefreshDelayMs = 300;
+
+std::mutex buttonSwapMutex;
+std::map<ObjectGuid, ButtonSwapWindow> buttonSwapWindows;
+
+void ArmButtonSwap(Player* player)
+{
+    if (!player->IsInWorld())
+        return;
+    std::lock_guard<std::mutex> lock(buttonSwapMutex);
+    uint32 now = uint32(GameTime::GetGameTimeMS().count());
+    for (auto itr = buttonSwapWindows.begin(); itr != buttonSwapWindows.end();)
+    {
+        if (itr->second.untilMs + 10000 < now)
+            itr = buttonSwapWindows.erase(itr);
+        else
+            ++itr;
+    }
+    ButtonSwapWindow& window = buttonSwapWindows[player->GetGUID()];
+    window.untilMs = now + 2000;
+    window.swapped.clear();
+}
+
+void SweepButtonSwapCopies(Player* player)
+{
+    if (!player->IsInWorld())
+        return;
+    constexpr uint8 kPage = 12;
+    for (uint8 first = 0; first < MAX_ACTION_BUTTONS; first += kPage)
+        for (uint8 slot = first; slot < first + kPage && slot < MAX_ACTION_BUTTONS; ++slot)
+        {
+            if (slot >= kClientPossessionFirstButton && slot <= kClientPossessionLastButton)
+                continue;
+            ActionButton const* button = player->GetActionButton(slot);
+            if (button && button->GetAction())
+                continue;
+            WorldPacket data(SMSG_SET_ACTION_BUTTON_SPELL, 5);
+            data << uint8(slot) << uint32(0);
+            player->GetSession()->SendPacket(&data);
+            break;
+        }
+}
+
+void FlipTravelButtons(Player* player, uint32 fromSpell, uint32 toSpell)
+{
+    if (!player->IsInWorld())
+        return;
+    std::lock_guard<std::mutex> lock(buttonSwapMutex);
+    ButtonSwapWindow& window = buttonSwapWindows[player->GetGUID()];
+    bool flipped = false;
+    for (uint8 slot = 0; slot < MAX_ACTION_BUTTONS; ++slot)
+    {
+        ActionButton const* button = player->GetActionButton(slot);
+        if (!button || button->GetType() != ACTION_BUTTON_SPELL || button->GetAction() != fromSpell)
+            continue;
+        player->addActionButton(slot, toSpell, ACTION_BUTTON_SPELL);
+        window.swapped.push_back(slot);
+        WorldPacket data(SMSG_SET_ACTION_BUTTON_SPELL, 5);
+        data << uint8(slot) << uint32(toSpell);
+        player->GetSession()->SendPacket(&data);
+        flipped = true;
+    }
+    if (flipped)
+        window.refreshDueMs = uint32(GameTime::GetGameTimeMS().count()) + kButtonStateRefreshDelayMs;
+}
+
+void RefreshButtonSwapState(Player* player)
+{
+    if (!player->IsInWorld())
+        return;
+    bool refresh = false;
+    {
+        std::lock_guard<std::mutex> lock(buttonSwapMutex);
+        auto itr = buttonSwapWindows.find(player->GetGUID());
+        if (itr != buttonSwapWindows.end() && itr->second.refreshDueMs &&
+            uint32(GameTime::GetGameTimeMS().count()) >= itr->second.refreshDueMs)
+        {
+            itr->second.refreshDueMs = 0;
+            refresh = true;
+        }
+    }
+    if (refresh)
+        player->SendActionButtons(1);
+}
 
 uint32 ReturnSpell(uint32 spell) { return spell == SPELL_ECHO_RUNE ? SPELL_ECHO_RETURN : SPELL_WARP; }
 uint32 TravelAura(uint32 spell) { return spell == SPELL_ECHO_RUNE ? SPELL_ECHO_RUNE : SPELL_WARP_READY; }
 uint32 TravelEntry(uint32 spell) { return spell == SPELL_ECHO_RUNE ? NPC_ECHO_RUNE : NPC_WARPDAGGER; }
+
+uint32 TravelButtonPartner(uint32 spell)
+{
+    switch (spell)
+    {
+        case SPELL_ECHO_RUNE: return SPELL_ECHO_RETURN;
+        case SPELL_ECHO_RETURN: return SPELL_ECHO_RUNE;
+        case SPELL_WARPDAGGER: return SPELL_WARP;
+        case SPELL_WARP: return SPELL_WARPDAGGER;
+        default: return 0;
+    }
+}
 
 ObjectGuid MarkerGuid(ObjectGuid owner, uint32 spell)
 {
@@ -83,9 +195,15 @@ void ClearTravel(Player* player, uint32 spell)
 {
     ObjectGuid guid = MarkerGuid(player->GetGUID(), spell);
     Creature* marker = FindMarker(player, spell);
+    bool traveling = player->GetTemporarySpellReplacement(spell) != spell;
     ForgetMarker(player->GetGUID(), spell, guid);
-    player->SetTemporarySpellReplacement(spell, 0);
-    player->removeSpell(ReturnSpell(spell), SPEC_MASK_ALL, true);
+    player->SetTemporarySpellReplacement(spell, 0, false);
+    if (traveling)
+    {
+        ArmButtonSwap(player);
+        FlipTravelButtons(player, ReturnSpell(spell), spell);
+        SweepButtonSwapCopies(player);
+    }
     player->RemoveAurasDueToSpell(TravelAura(spell), player->GetGUID());
     if (marker)
         marker->DespawnOrUnsummon();
@@ -138,14 +256,17 @@ bool StartTravel(Player* player, uint32 spell)
         travelMarkers[{player->GetGUID(), spell}] = marker->GetGUID();
     }
     uint32 child = ReturnSpell(spell);
-    if (player->GetSpellMap().find(child) == player->GetSpellMap().end())
-        player->learnSpell(child, true);
-    player->SetTemporarySpellReplacement(spell, child);
+    if (!player->HasActiveSpell(child))
+        player->learnSpell(child, false);
+    player->SetTemporarySpellReplacement(spell, child, false);
     if (player->GetTemporarySpellReplacement(spell) != child)
     {
         ClearTravel(player, spell);
         return false;
     }
+    ArmButtonSwap(player);
+    FlipTravelButtons(player, spell, child);
+    SweepButtonSwapCopies(player);
     if (spell == SPELL_WARPDAGGER)
     {
         player->CastSpell(player, SPELL_WARP_READY, true);
@@ -345,19 +466,66 @@ public:
     void OnPlayerForgotSpell(Player* player, uint32 spell) override
     {
         if (player->getClass() == CLASS_SPIRIT_MAGE && (spell == SPELL_ECHO_RUNE || spell == SPELL_WARPDAGGER))
+        {
             ClearTravel(player, spell);
+            player->removeSpell(ReturnSpell(spell), SPEC_MASK_ALL, false);
+        }
     }
 
     void OnPlayerUpdate(Player* player, uint32) override
     {
         if (player->getClass() != CLASS_SPIRIT_MAGE)
             return;
+        RefreshButtonSwapState(player);
         for (uint32 spell : {SPELL_ECHO_RUNE, SPELL_WARPDAGGER})
             if ((MarkerGuid(player->GetGUID(), spell) || player->GetTemporarySpellReplacement(spell) != spell) &&
                 !HasTravelMarker(player, spell))
                 ClearTravel(player, spell);
     }
 };
+}
+
+void AscensionRunemasterTravelDropButtonCopies(Player* player, uint8 button, uint32 action, uint32 previous)
+{
+    uint32 partner = TravelButtonPartner(action);
+    if (!player || !partner || previous == action)
+        return;
+    std::lock_guard<std::mutex> lock(buttonSwapMutex);
+    auto itr = buttonSwapWindows.find(player->GetGUID());
+    if (itr == buttonSwapWindows.end() || uint32(GameTime::GetGameTimeMS().count()) > itr->second.untilMs)
+        return;
+    ButtonSwapWindow& window = itr->second;
+    bool changed = false;
+    if (previous == partner)
+    {
+        window.swapped.push_back(button);
+        for (uint8 slot = 0; slot < MAX_ACTION_BUTTONS; ++slot)
+        {
+            ActionButton const* other = player->GetActionButton(slot);
+            if (slot == button || std::find(window.swapped.begin(), window.swapped.end(), slot) != window.swapped.end())
+                continue;
+            if (other && other->GetType() == ACTION_BUTTON_SPELL && other->GetAction() == action)
+            {
+                player->removeActionButton(slot);
+                changed = true;
+            }
+        }
+    }
+    else
+    {
+        for (uint8 slot = 0; slot < MAX_ACTION_BUTTONS; ++slot)
+        {
+            ActionButton const* other = player->GetActionButton(slot);
+            if (slot != button && other && other->GetType() == ACTION_BUTTON_SPELL && other->GetAction() == action)
+            {
+                player->removeActionButton(button);
+                changed = true;
+                break;
+            }
+        }
+    }
+    if (changed && player->IsInWorld())
+        player->SendActionButtons(1);
 }
 
 void ApplyAscensionRunemasterTravelContracts(SpellInfo* info)
