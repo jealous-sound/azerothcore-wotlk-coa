@@ -18,7 +18,7 @@ namespace
 {
     std::unordered_map<uint32, float> Multipliers;
     std::unordered_set<uint32> Bosses;
-    std::unordered_map<uint32, float> CreatureMultipliers;   // creature entry -> all its damage, every difficulty
+    std::unordered_map<uint32, float> CreatureMultipliers;
 
     constexpr int32 TrashCapHeroic = 460;
     constexpr int32 TrashCapMythic = 600;
@@ -50,8 +50,6 @@ namespace
         return itr == Multipliers.end() ? 1.0f : itr->second;
     }
 
-    // One creature hits too hard across the board: its melee, spells and periodic damage, on
-    // every difficulty, inside dungeons.
     float CreatureMultiplier(Unit const* attacker)
     {
         if (CreatureMultipliers.empty() || !attacker)
