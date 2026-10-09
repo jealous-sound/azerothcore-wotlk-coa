@@ -348,13 +348,14 @@ void Refresh(Player* player)
     }
     else
         FillMechsuitBar(player);
-    bool mine = false;
-    for (Creature* device : Devices(player))
-        mine |= device->GetEntry() == 50045 || device->GetEntry() == 50600;
-    if (mine && !player->HasSpell(801798))
-        player->learnSpell(801798,true);
-    else if (!mine)
-        player->removeSpell(801798,SPEC_MASK_ALL,true);
+    bool mines = player->HasAura(803074);
+    for (auto const& pair : player->GetSpellMap())
+        mines |= player->HasSpell(pair.first) &&
+            Any(sSpellMgr->GetSpellInfo(pair.first),{801718,805354,704463,706647});
+    if (mines && !player->HasSpell(801798))
+        player->learnSpell(801798);
+    else if (!mines && player->HasSpell(801798))
+        player->removeSpell(801798,SPEC_MASK_ALL,false);
     bool gear = player->HasAura(681245);
     if (Spell* channel = player->GetCurrentSpell(CURRENT_CHANNELED_SPELL); channel &&
         channel->GetSpellInfo()->Id == 504594 && channel->getState() != SPELL_STATE_FINISHED)

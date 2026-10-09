@@ -24,6 +24,7 @@
 #include "GameTime.h"
 #include "Item.h"
 #include "Language.h"
+#include "LocalLevelScaling.h"
 #include "Log.h"
 #include "Mail.h"
 #include "MailMgr.h"
@@ -684,6 +685,8 @@ void WorldSession::HandleGetMailList(WorldPacket& recvData)
         return;
 
     Player* player = _player;
+
+    LocalLevelScaling::NotifyMailListed(player);
 
     uint8 mailsCount = 0;
     uint32 realCount = 0;

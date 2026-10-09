@@ -69,6 +69,31 @@ namespace PathToAscension
             return value <= uint32(RealmProfile::Development) ? RealmProfile(value) : fallback;
         }
 
+        // Onyxia's Lair and Naxxramas still run as level 80 Wrath of the Lich King raids here.
+        bool IsWrathRaidTutorial(uint32 tutorialId)
+        {
+            static constexpr uint32 ids[] = { 123, 127, 130, 134, 137, 141, 144, 148 };
+            return std::find(std::begin(ids), std::end(ids), tutorialId) != std::end(ids);
+        }
+
+        constexpr uint32 MythicPlusTutorial = 17;
+
+        uint32 ContentExpansion()
+        {
+            int32 const configured = sConfigMgr->GetOption<int32>("PathToAscension.Expansion", EXPANSION_CLASSIC);
+            if (configured >= EXPANSION_CLASSIC && configured <= EXPANSION_WRATH_OF_THE_LICH_KING)
+                return uint32(configured);
+
+            return sConfigMgr->GetOption<uint32>("Expansion", EXPANSION_WRATH_OF_THE_LICH_KING);
+        }
+
+        uint32 ClientExpansion()
+        {
+            uint32 const maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+            return maxLevel <= 60 ? EXPANSION_CLASSIC
+                : maxLevel <= 70 ? EXPANSION_THE_BURNING_CRUSADE : EXPANSION_WRATH_OF_THE_LICH_KING;
+        }
+
         RealmProfile ClientRealmProfile()
         {
             std::string const type = sConfigMgr->GetOption<std::string>("CoA.RealmType", "live", false);
@@ -271,19 +296,26 @@ namespace PathToAscension
             uint32 const clientAvailability = RealmAvailabilityField(settings.client);
             for (auto const& [id, tutorial] : catalog.Tutorials())
             {
-                bool const legacy = IsLegacyAvailable(id);
-                bool const realmBridge = settings.realm != settings.client
-                    && tutorial.fields[serverAvailability] && !tutorial.fields[clientAvailability];
-                if (!legacy && !realmBridge)
+                if (!tutorial.fields[serverAvailability] && !tutorial.fields[clientAvailability])
                     continue;
 
+                uint32 const expansion = tutorial.fields[TutorialField::Expansion];
+                bool const offered = IsExpansionOffered(tutorial);
+                bool const clientShows = expansion == AnyExpansion || expansion == settings.clientExpansion;
+                bool const realmBridge = settings.realm != settings.client
+                    && tutorial.fields[serverAvailability] && !tutorial.fields[clientAvailability];
+                if (offered == clientShows && !realmBridge)
+                    continue;
+
+                uint32 const patchedExpansion = offered == clientShows ? expansion
+                    : offered ? AnyExpansion : (settings.clientExpansion + 1) % AnyExpansion;
+
                 // Extensions.dll 0x101e4ea0 reads 45 DWORDs and five C strings; pointer fields 35..39
-                // are replaced by its own parser. The patch only makes a tutorial the server offers
-                // visible to the connected client profile; eligibility stays server-side.
+                // are replaced by its own parser. The patch only aligns the client's realm and expansion
+                // visibility with the tutorials the server offers; eligibility stays server-side.
                 WorldPacket patch(SMSG_TUTORIAL_PATCH, 256 + tutorial.pages.size());
                 for (uint32 index = 0; index < 35; ++index)
-                    patch << uint32(index == TutorialField::Expansion && legacy ? AnyExpansion
-                        : tutorial.fields[index]);
+                    patch << uint32(index == TutorialField::Expansion ? patchedExpansion : tutorial.fields[index]);
                 for (uint32 index = 0; index < 5; ++index)
                     patch << uint32(0);
                 for (uint32 index = TutorialField::FirstRealmAvailability; index < 93; ++index)
@@ -662,16 +694,24 @@ namespace PathToAscension
 
         // Only restored legacy quest references without a current-expansion variant.
         return tutorialId == 16 || tutorialId == 41 || (tutorialId >= 121 && tutorialId <= 184
-            && tutorialId != 123 && tutorialId != 127 && tutorialId != 130 && tutorialId != 134
-            && tutorialId != 137 && tutorialId != 141 && tutorialId != 144 && tutorialId != 148)
-            || (tutorialId >= 200 && tutorialId <= 218);
+            && !IsWrathRaidTutorial(tutorialId)) || (tutorialId >= 200 && tutorialId <= 218);
+    }
+
+    bool IsExpansionOffered(Tutorial const& tutorial)
+    {
+        uint32 const expansion = tutorial.fields[TutorialField::Expansion];
+        if (expansion == AnyExpansion)
+            return true;
+
+        return !IsWrathRaidTutorial(tutorial.Id()) && tutorial.Id() != MythicPlusTutorial
+            && (expansion == settings.expansion || IsLegacyAvailable(tutorial.Id()));
     }
 
     bool IsCallbackImplemented(uint32 tutorialId)
     {
         static constexpr uint32 ids[] =
         {
-            2, 5, 6, 8, 9, 10, 13, 14, 15, 16, 18, 19, 22, 24, 27, 28, 29, 30, 32,
+            2, 5, 6, 8, 9, 10, 13, 14, 15, 16, 18, 19, 22, 24, 27, 28, 29, 30, 31, 32,
             33, 36, 41, 51, 56, 57, 58, 64, 65, 74, 76, 78, 80, 82, 83, 84, 89, 90, 91, 92,
             93, 101, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 121, 122, 124, 125,
             126, 128, 129, 131, 132, 133, 135, 136, 138, 139, 140, 142, 143, 145, 146, 147, 149, 150,
@@ -713,7 +753,8 @@ public:
             return;
         }
 
-        settings.expansion = sConfigMgr->GetOption<uint32>("Expansion", 2);
+        settings.expansion = ContentExpansion();
+        settings.clientExpansion = ClientExpansion();
         settings.realm = ReadRealmProfile(sConfigMgr->GetOption<uint32>("PathToAscension.RealmProfile",
             uint32(RealmProfile::PTR)), RealmProfile::PTR);
         settings.client = ClientRealmProfile();
@@ -727,8 +768,9 @@ public:
         ConfigureRewards();
 
         LOG_INFO("module.pta", "Path to Ascension loaded {} tutorials and {} quest references (realm profile {}, "
-            "client profile {})", catalog.Tutorials().size(), catalog.Quests().size(), uint32(settings.realm),
-            uint32(settings.client));
+            "client profile {}, expansion {}, client expansion {})", catalog.Tutorials().size(),
+            catalog.Quests().size(), uint32(settings.realm), uint32(settings.client), settings.expansion,
+            settings.clientExpansion);
     }
 };
 
@@ -927,6 +969,9 @@ public:
                 break;
             case CoAProgressEvent::AppearanceCollected:
                 RecordAppearance(player, value);
+                break;
+            case CoAProgressEvent::ExperimentalTeleporter:
+                CompleteVerifiedTutorial(player, 31);
                 break;
         }
     }

@@ -71,6 +71,22 @@ bool SixfoldShotReady(Player* player)
     return player->HasAura(SPELL_SIXFOLD_SHOT_PASSIVE) && stacks && stacks->GetStackAmount() >= 5;
 }
 
+void LeapVault(Player* player, float distance, float angle)
+{
+    float const speedZ = 10.0f;
+    Position end = player->GetPosition();
+    player->MovePositionToFirstCollision(end, distance, angle);
+    float const dx = end.GetPositionX() - player->GetPositionX();
+    float const dy = end.GetPositionY() - player->GetPositionY();
+    float reached = std::sqrt(dx * dx + dy * dy);
+    if (reached < 1.0f)
+        reached = distance;
+    float const speedXY = reached * float(Movement::gravity) / (2.0f * speedZ);
+    sScriptMgr->AnticheatSetUnderACKmount(player);
+    player->GetMotionMaster()->MoveJumpFixedFacing(end.GetPositionX(), end.GetPositionY(), end.GetPositionZ(),
+                                                  speedXY, speedZ);
+}
+
 class witch_hunter_casts : public AllSpellScript
 {
   public:
@@ -303,6 +319,8 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             if (SixfoldShotReady(player))
             {
                 Cast(player, player, SPELL_SIXFOLD_SHOT_TRANSFORM);
+                if (!player->HasSpell(SPELL_SIXFOLD_SHOT))
+                    player->learnSpellWithoutAnnouncement(SPELL_SIXFOLD_SHOT);
                 Replacement(player, 0, 64, SPELL_SIXFOLD_SHOT);
             }
         }
@@ -324,15 +342,10 @@ class spell_ascension_witch_hunter_ability : public SpellScript
             if (player->HasUnitMovementFlag(MOVEMENTFLAG_STRAFE_RIGHT))
                 y -= 1.0f;
             float angle = x || y ? std::atan2(y, x) : 0.0f;
-            float distance = 10.0f * player->GetSpeedRate(MOVE_RUN);
+            float distance = 16.0f * player->GetSpeedRate(MOVE_RUN);
             if (AuraEffect* extra = player->GetAuraEffect(789256, EFFECT_0))
                 distance += extra->GetAmount();
-            float const speedZ = 5.0f;
-            float const speedXY = distance * float(Movement::gravity) / (2.0f * speedZ);
-            float const heading = player->GetOrientation() + angle;
-            player->KnockbackFrom(player->GetPositionX() - std::cos(heading),
-                                  player->GetPositionY() - std::sin(heading), speedXY, speedZ);
-            sScriptMgr->AnticheatSetUnderACKmount(player);
+            LeapVault(player, distance, angle);
             talent(524812, 525054);
             talent(681156, 681155);
             player->RemoveAurasDueToSpell(500102);

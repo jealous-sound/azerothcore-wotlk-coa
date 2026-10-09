@@ -133,6 +133,7 @@ struct Player
     uint8 m_activeSpec = 0;
     PlayerSpellMap m_spells;
     std::map<uint32, uint32> m_temporarySpellReplacements;
+    std::map<uint32, uint32> m_temporarySpellReplacementOrigins;
     std::map<uint32, Aura> auras;
     Session session;
     Player() = default;
@@ -163,12 +164,14 @@ struct Player
     bool HasActiveSpell(uint32) const;
     bool _addSpell(uint32, uint8, bool, bool = false);
     void learnSpell(uint32, bool = false, bool = false);
+    void learnSpellWithoutAnnouncement(uint32, bool = true);
+    void _learnSpell(uint32, bool, bool, bool);
     void removeSpell(uint32, uint8, bool);
     bool addSpell(uint32 id, uint8 mask, bool, bool temporary, bool skill)
     {
         return _addSpell(id, mask, temporary, skill);
     }
-    void SendLearnPacket(uint32, bool) { ++learnPackets; }
+    void SendLearnPacket(uint32, bool, bool = false) { ++learnPackets; }
     void _SaveSpells(CharacterDatabaseTransaction);
     void SetTemporarySpellReplacement(uint32, uint32);
     uint32 GetTemporarySpellReplacement(uint32) const;
@@ -213,6 +216,9 @@ struct Config
 } ascensionCompatConfig;
 struct ScriptMgr
 {
+    void OnPlayerTemporarySpellLearnNotice(Player*, uint32, bool) { }
+    void OnPlayerTemporarySpellRemoveNotice(Player*, uint32, bool) { }
+    void OnPlayerTemporarySpellReplacementNotice(Player*, uint32, uint32, bool) { }
     // ACTUAL_HOOKS
 } scripts;
 auto sScriptMgr = &scripts;

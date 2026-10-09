@@ -88,6 +88,11 @@ def main():
         ('CAN_PACKET_SEND', method(compat, 'bool CanPacketSend(WorldSession* session')),
         ('POINT_SPEND', method_or(compat, 'void HandlePointSpendRequest(Player* player', '')),
         ('DELIVER_VANITY', method(compat, 'void DeliverVanityItem(Player *player, uint32 itemId)')),
+        ('WITHHELD_VANITY', '\n'.join([
+            (re.search(r'static constexpr std::array<uint32, \d+> MysticAltarVanityItems = [^;]+;', compat) or [''])[0],
+            method_or(compat, 'static bool IsWithheldVanityItem(uint32 itemId)',
+                      'static bool IsWithheldVanityItem(uint32) { return false; }'),
+        ])),
         ('BANK_VANITY', '\n'.join([re.search(r'static constexpr std::array<uint32, \d+> BankVanityItems = [^;]+;',
                                              compat)[0]] + [method(compat, signature) for signature in (
             'static bool IsBankVanityItem(uint32 itemId)',

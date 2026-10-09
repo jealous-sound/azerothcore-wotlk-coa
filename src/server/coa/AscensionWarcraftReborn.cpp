@@ -39,6 +39,26 @@ bool Exists(uint32 spellId)
     return sSpellMgr->GetSpellInfo(spellId) != nullptr;
 }
 
+std::vector<std::pair<uint32, uint32>> LoadTwins()
+{
+    if (!RebornRealm)
+        return {};
+    return SpellTwins(sSpellMgr->GetSpellInfoStoreSize(), [](std::uint32_t spellId) -> std::optional<SpellLayout>
+        {
+            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+            if (!spellInfo)
+                return std::nullopt;
+            SpellLayout layout;
+            layout.Name = spellInfo->SpellName[0];
+            for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+            {
+                layout.Effects[i] = spellInfo->Effects[i].Effect;
+                layout.Auras[i] = spellInfo->Effects[i].ApplyAuraName;
+            }
+            return layout;
+        });
+}
+
 std::vector<std::vector<uint32>> LoadRankChains()
 {
     CurrentRealm = AscensionFreepick::ReadRealm();
@@ -276,5 +296,6 @@ void AddAscensionWarcraftRebornScripts()
     RegisterSpellScriptWithArgs(AscensionWarcraftReborn::spell_ascension_reborn_dark_apotheosis_only,
         "spell_ascension_reborn_dark_apotheosis_only");
     sSpellMgr->SetAddedSpellRanks(&AscensionWarcraftReborn::LoadRankChains);
+    sSpellMgr->SetSpellTwins(&AscensionWarcraftReborn::LoadTwins);
     Trainer::SetClassTrainerFor(&AscensionWarcraftReborn::TrainerFor);
 }

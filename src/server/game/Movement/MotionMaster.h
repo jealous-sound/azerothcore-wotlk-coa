@@ -257,6 +257,7 @@ public:
     { MoveJump(pos.m_positionX, pos.m_positionY, pos.m_positionZ, speedXY, speedZ, id); };
     void MoveJump(float x, float y, float z, float speedXY, float speedZ, uint32 id = 0, Unit const* target = nullptr,
         std::optional<float> finalOrientation = std::nullopt);
+    void MoveJumpFixedFacing(float x, float y, float z, float speedXY, float speedZ, uint32 id = 0);
     void MoveFall(uint32 id = 0, bool addFlagForNPC = false);
 
     void MoveSeekAssistance(float x, float y, float z);

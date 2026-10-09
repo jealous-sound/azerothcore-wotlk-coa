@@ -121,6 +121,17 @@ TEST(CoAPrestige, TheSpecializationStaysLockedWhilePrestiging)
         "Your active specialization is prestige locked until you reach level 60.");
 }
 
+TEST(CoAPrestige, CompletedPrestigeKeepsOnlySignatureRestorationPending)
+{
+    State const pending{ 1, false, 17, true };
+    EXPECT_EQ(EncodeState(pending), (std::vector<uint32_t>{ 1, 0, 17, 1 }));
+    EXPECT_EQ(DecodeState(EncodeState(pending)), pending);
+    EXPECT_TRUE(IsSpecializationSwitchAllowed(DecodeState(EncodeState(pending)), 18));
+
+    EXPECT_FALSE(DecodeState({ 1, 0, 17 }).signaturePending);
+    EXPECT_FALSE(DecodeState({ 1, 0, 17, 0 }).signaturePending);
+}
+
 TEST(CoAPrestige, OnlyOrdinaryZoneQuestsAreReplayed)
 {
     QuestTraits const zoneQuest{ 12, 20, QuestTypeNormal, false };

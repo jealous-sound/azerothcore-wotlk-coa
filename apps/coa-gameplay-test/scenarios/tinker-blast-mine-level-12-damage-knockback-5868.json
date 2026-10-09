@@ -2,7 +2,7 @@
   "schema": 1,
   "name": "Level-12 Blast Mine remote detonation damages and knocks back nearby enemies (#5868)",
   "contract": [
-    "Deploy Blast Mine 801718 is a normal level-6 Tinker class ability. Its current description promises Fire damage and knockback on destruction or Remote Detonation 801798, within the Remote Bomb Explosion 802336 radius of 8 yards. Explosion effect 0 is SCHOOL_DAMAGE and effect 1 is KNOCK_BACK. A level-12 Tinker buys Deploy Blast Mine through the native Book at level 12, then deploys it three yards away without fixture-learning the mine, remote ability or ready aura; a level-3 hostile creature one yard beyond that mine must take positive damage and move away after the normal Remote Detonation cast. A second hostile creature 22 yards from the mine must receive neither damage nor displacement. Before detonation the nearby creature remains unharmed and stationary. Mine cleanup removes both its readiness aura and temporary remote ability; the owner remains unharmed. This observes native creature motion; client movement acknowledgement is outside this case."
+    "Deploy Blast Mine 801718 is a normal level-6 Tinker class ability. Its current description promises Fire damage and knockback on destruction or Remote Detonation 801798, within the Remote Bomb Explosion 802336 radius of 8 yards. Explosion effect 0 is SCHOOL_DAMAGE and effect 1 is KNOCK_BACK. A level-12 Tinker buys Deploy Blast Mine through the native Book at level 12, then deploys it three yards away without fixture-learning the mine, remote ability or ready aura; a level-3 hostile creature one yard beyond that mine must take positive damage and move away after the normal Remote Detonation cast. A second hostile creature 22 yards from the mine must receive neither damage nor displacement. Before detonation the nearby creature remains unharmed and stationary. Mine cleanup removes its readiness aura and leaves Remote Detonation known; the owner remains unharmed. This observes native creature motion; client movement acknowledgement is outside this case."
   ],
   "timeout_ms": 90000,
   "players": [
@@ -103,8 +103,9 @@
       "actor": "tinker",
       "metric": "knows_spell",
       "spell": 801798,
-      "equals": 0,
-      "label": "Remote Detonation is absent without a mine"
+      "equals": 1,
+      "within_ms": 2000,
+      "label": "Remote Detonation is known from Deploy Blast Mine"
     },
     {
       "action": "snapshot",
@@ -172,7 +173,7 @@
       "spell": 801798,
       "equals": 1,
       "within_ms": 2000,
-      "label": "The mine supplies Remote Detonation"
+      "label": "Remote Detonation stays known with a mine out"
     },
     {
       "action": "wait",
@@ -274,7 +275,7 @@
       "actor": "tinker",
       "metric": "knows_spell",
       "spell": 801798,
-      "equals": 0,
+      "equals": 1,
       "within_ms": 2000
     }
   ]

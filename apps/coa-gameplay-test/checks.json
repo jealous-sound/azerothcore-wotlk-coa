@@ -579,6 +579,34 @@
         "native-fixture-descendant-cleanup-consumer"
       ],
       "args": []
+    },
+    {
+      "script": "check_wildcard_spell_payoffs.py",
+      "scenarios": [
+        "wildcard-elemental-blast-secondary-6782"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_wildcard_spell_payoffs.py",
+      "scenarios": [
+        "wildcard-bloodbath-physical-proc-6814"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_wildcard_spell_payoffs.py",
+      "scenarios": [
+        "wildcard-cremation-all-dots-6791"
+      ],
+      "args": []
+    },
+    {
+      "script": "check_wildcard_spell_payoffs.py",
+      "scenarios": [
+        "wildcard-solar-strike-five-points-6806"
+      ],
+      "args": []
     }
   ]
 }

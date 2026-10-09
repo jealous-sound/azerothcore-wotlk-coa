@@ -173,6 +173,7 @@ public:
 void AddEtherealBazaarCacheScripts();
 void AddEtherealBazaarSetCacheScripts();
 void AddEtherealBazaarTokenScripts();
+void AddEtherealBazaarDispenserScripts();
 
 void AddEtherealBazaarScripts()
 {
@@ -182,4 +183,5 @@ void AddEtherealBazaarScripts()
     AddEtherealBazaarCacheScripts();
     AddEtherealBazaarSetCacheScripts();
     AddEtherealBazaarTokenScripts();
+    AddEtherealBazaarDispenserScripts();
 }

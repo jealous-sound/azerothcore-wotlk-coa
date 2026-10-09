@@ -411,6 +411,12 @@ void RefreshInvertedBreathTracking(Player* player);
     void RefreshHighRiskTracking(Player* player);
     void UntrackHighRisk(Player* player);
     bool HighRiskTracked(uint32 guid);
+    // NO_CREATURE_LEVEL_SCALING / NO_QUEST_LEVEL_SCALING: the parts of level
+    // scaling the active challenges switch off, as LocalLevelScaling's
+    // ChallengeBlocks* mask (refreshed on login/activate/deactivate/complete/fail).
+    void RefreshLevelScalingTracking(Player* player);
+    void UntrackLevelScaling(Player* player);
+    uint8 LevelScalingBlocks(Player const* player);
     // NO_NON_LOOTED_ITEMS ("Scavenger"): item-instance looted tracking.
     void RefreshLootedTracking(Player* player);
     void UntrackLootedItems(uint32 guid);

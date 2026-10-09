@@ -40,20 +40,23 @@
 // (DamageTakenFactor). Both factors are 1 for a character with scaling off, and for a character
 // whose version *is* the creature: their fight is then the authored fight, and nobody else's fight
 // changes because of it.
-#include "DungeonHealth.h"
 #include "destiny_weaver.h"
 #include "destiny_weaver_view_damage.h"
 
 #include "Config.h"
 #include "Creature.h"
+#include "DBCStores.h"
 #include "Group.h"
 #include "LocalLevelScaling.h"
 #include "Log.h"
 #include "Map.h"
 #include "ObjectMgr.h"
 #include "Player.h"
+#include "Random.h"
 #include "ScriptMgr.h"
+#include "StringConvert.h"
 #include "Timer.h"
+#include "Tokenize.h"
 #include "Unit.h"
 #include "UpdateData.h"
 #include "UpdateFields.h"
@@ -61,10 +64,12 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace
 {
@@ -86,27 +91,82 @@ namespace
     /// read an atomic instead of a config file.
     uint8 ScalingOffset()
     {
-        return uint8(std::min<uint32>(sConfigMgr->GetOption<uint32>("DestinyWeaver.Scaling.Offset", 3), 60));
+        return uint8(std::min<uint32>(sConfigMgr->GetOption<uint32>("DestinyWeaver.Scaling.Offset", 4), 60));
     }
 
-    /// How much of a scaled reward a quest keeps at the far end of the level range, in per cent.
-    /// See LocalLevelScaling.h for what the two of them do; 100 is no discount at all.
-    uint32 RewardKeepShare(char const* key, uint32 fallback)
+    /// The client flag that marks a unit as scaled for this client (UnitIsLevelScaling): the client then
+    /// shows its health as a share rather than as the pool it was told.
+    constexpr uint32 UNIT_DYNFLAG_LEVEL_SCALING = 0x100;
+
+    /// The dungeon finder entries whose dungeons scale: the classic five-player dungeons the client's own
+    /// scaling list names.
+    constexpr char DEFAULT_SCALING_DUNGEONS[] = "1 4 6 8 10 12 14 16 18 20 22 24 26 28 163 164 165 272 273";
+
+    /// Where a view can exist at all: the open-world maps, and the classic dungeons with the band their
+    /// creatures are held inside. Built on every config load and at startup, and published whole, so a
+    /// reader on any map thread holds one consistent scope for as long as it asks. A scope is never
+    /// freed while the server runs: a reload publishes a new one beside it.
+    struct ScalingScope
     {
-        return std::min<uint32>(sConfigMgr->GetOption<uint32>(key, fallback), 100);
+        std::unordered_set<uint32> WorldMaps;
+        std::unordered_map<uint32, LocalLevelScaling::LevelBand> DungeonBands;
+    };
+
+    std::atomic<ScalingScope const*> g_scope{nullptr};
+    std::vector<std::unique_ptr<ScalingScope const>> g_publishedScopes;
+
+    ScalingScope const* Scope()
+    {
+        return g_scope.load(std::memory_order_acquire);
     }
 
-    /// Pushes the reward tuning into the core, which is where the reward paths read it.
-    void ApplyRewardTuning()
+    std::vector<uint32> ConfigIds(char const* key, char const* fallback)
     {
-        uint32 const money = RewardKeepShare("DestinyWeaver.Scaling.QuestMoneyKeepShare", 60);
-        uint32 const xp = RewardKeepShare("DestinyWeaver.Scaling.QuestXpKeepShare", 100);
-        LocalLevelScaling::QuestMoneyKeepSharePercent.store(money, std::memory_order_relaxed);
-        LocalLevelScaling::QuestXpKeepSharePercent.store(xp, std::memory_order_relaxed);
+        std::vector<uint32> ids;
+        std::string const value = sConfigMgr->GetOption<std::string>(key, fallback);
+        for (std::string_view token : Acore::Tokenize(value, ' ', false))
+            if (Optional<uint32> id = Acore::StringTo<uint32>(token))
+                ids.push_back(*id);
+        return ids;
+    }
 
-        LOG_INFO("module.destiny_weaver",
-                 "scaled quest rewards keep {}/{}% of the level-appropriate money/experience at the "
-                 "far end of the level range (100 = no discount)", money, xp);
+    /// The bands come from LFGDungeons.dbc. The first config load runs before the store is filled, so
+    /// it publishes a scope without dungeons; startup publishes the complete one.
+    void PublishScope()
+    {
+        auto scope = std::make_unique<ScalingScope>();
+        for (uint32 mapId : ConfigIds("DestinyWeaver.Scaling.WorldMaps", "0 1"))
+            scope->WorldMaps.insert(mapId);
+
+        for (uint32 dungeonId : ConfigIds("DestinyWeaver.Scaling.DungeonIds", DEFAULT_SCALING_DUNGEONS))
+        {
+            LFGDungeonEntry const* dungeon = sLFGDungeonStore.LookupEntry(dungeonId);
+            if (!dungeon)
+                continue;
+
+            LocalLevelScaling::LevelBand const band =
+                LocalLevelScaling::DungeonBandFromFinder(dungeon->TargetLevelMin, dungeon->MaxLevel);
+            auto [itr, inserted] = scope->DungeonBands.try_emplace(dungeon->MapID, band);
+            if (!inserted)
+                itr->second = LocalLevelScaling::MergeBands(itr->second, band);
+        }
+
+        LOG_INFO("module.destiny_weaver", "creature scaling covers {} open-world map(s) and {} dungeon map(s)",
+                 scope->WorldMaps.size(), scope->DungeonBands.size());
+
+        g_scope.store(scope.get(), std::memory_order_release);
+        g_publishedScopes.push_back(std::move(scope));
+    }
+
+    /// The band one scaled dungeon holds its creatures inside, or nullptr outside the scaled dungeons.
+    LocalLevelScaling::LevelBand const* DungeonBandFor(Map const* map)
+    {
+        ScalingScope const* scope = Scope();
+        if (!scope || !map)
+            return nullptr;
+
+        auto itr = scope->DungeonBands.find(map->GetId());
+        return itr != scope->DungeonBands.end() ? &itr->second : nullptr;
     }
 
     /// One row of `creature_classlevelstats`: everything the core builds a creature of a given level
@@ -139,6 +199,11 @@ namespace
                                                       info->BaseAttackTime);
     }
 
+    double SwingFrom(LevelStats const& stats, CreatureTemplate const* info, double weaponFactor)
+    {
+        return DestinyWeaver::CreatureSwingEnd(stats.BaseDamage, stats.AttackPower, info->BaseVariance, weaponFactor);
+    }
+
     /// One character's version of one creature.
     struct CreatureView
     {
@@ -149,6 +214,9 @@ namespace
         double DamageDealtToPool;
         /// The creature's own blow -> what it is worth in this character's version of the fight.
         double DamageTakenFactor;
+        /// The same for the bottom and the top of its melee range.
+        double DamageTakenLow;
+        double DamageTakenHigh;
     };
 
     Player* OwningPlayer(Unit* unit)
@@ -158,10 +226,18 @@ namespace
 
     /// Whether a creature may be given a view at all, whoever is looking at it.
     ///
-    /// These exclusions are not optional: a creature that belongs to somebody - a pet, a summon, a
-    /// totem, a charmed unit - must never be re-levelled, and neither must a trigger, a critter or a
-    /// non-combat pet, which are scenery with a health bar. A scripted private instance is CoA's own
-    /// scripted content and is left exactly as authored. A view is only ever about the open world.
+    /// These exclusions are not optional: a creature that belongs to somebody - a pet, a guardian, a
+    /// summon, a totem, a charmed unit - must never be re-levelled, and neither must a trigger, a
+    /// critter or a non-combat pet, which are scenery with a health bar. A world boss is authored for a
+    /// raid at its level, and a creature that serves (any npcflag) or cannot be fought keeps its level
+    /// for everyone. Those two are read from the creature's spawn and template rather than from its
+    /// live flags, which scripts toggle during events: a client caches the level it was told, so the
+    /// view must not appear and vanish with them.
+    ///
+    /// The maps are the open world the realm lists and the classic dungeons with a band. Raids,
+    /// battlegrounds and arenas never scale, and neither does CoA's scripted private content. A dungeon
+    /// scales on its regular difficulty only: Heroic and Mythic carry authored level-60 health
+    /// (coa_dungeon_health) and Mythic+ scales it; a per-character view would scale it a second time.
     ///
     /// There is no realm switch in front of the list: whether a character scales at all is their own
     /// choice (`ScalingChoiceEnabled`), and the module's switch only decides whether that choice is
@@ -172,17 +248,33 @@ namespace
             return false;
 
         Map* map = creature->GetMap();
-        if (!map || map->IsScriptedPrivateInstance())
+        ScalingScope const* scope = Scope();
+        if (!map || !scope || map->IsScriptedPrivateInstance() || map->IsBattlegroundOrArena() || map->IsRaid())
             return false;
 
-        // Vanilla dungeons on Heroic/Mythic carry authored level-60 health (coa_dungeon_health) and
-        // Mythic+ scales it; a per-character view would scale the same health a second time.
-        if (map->IsNonRaidDungeon() && !map->IsRegularDifficulty() && DungeonHealth::IsVanillaDungeon(map->GetId()))
+        if (map->IsDungeon())
+        {
+            if (!map->IsRegularDifficulty() || !scope->DungeonBands.contains(map->GetId()))
+                return false;
+        }
+        else if (!scope->WorldMaps.contains(map->GetId()))
             return false;
 
-        return !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger() &&
-               !creature->IsCritter() && creature->GetCreatureType() != CREATURE_TYPE_NON_COMBAT_PET &&
-               !creature->GetCharmerOrOwner();
+        if (creature->IsPet() || creature->IsTotem() || creature->IsGuardian() || creature->IsTrigger() ||
+            creature->IsCritter() || creature->isWorldBoss() ||
+            creature->GetCreatureType() == CREATURE_TYPE_NON_COMBAT_PET || creature->GetCharmerOrOwner())
+            return false;
+
+        CreatureTemplate const* info = creature->GetCreatureTemplate();
+        if (!info || !info->unit_class)
+            return false;
+
+        uint32 npcFlags = 0;
+        uint32 unitFlags = 0;
+        uint32 dynamicFlags = 0;
+        ObjectMgr::ChooseCreatureFlags(info, npcFlags, unitFlags, dynamicFlags, creature->GetCreatureData());
+        return !npcFlags &&
+               !(unitFlags & (UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
     }
 
     /// Whether this character's version of this creature is theirs to fight.
@@ -211,17 +303,31 @@ namespace
         if (!LocalLevelScaling::ScalingChoiceEnabled(viewer))
             return false;
 
+        // A challenge rule or an open-world PvP ruleset holds the character to the authored world.
+        if (LocalLevelScaling::ScalingBlocksFor(viewer) & LocalLevelScaling::ChallengeBlocksCreatureScaling)
+            return false;
+
         if (!ViewableCreature(creature) || !ViewableBy(viewer, creature))
             return false;
 
         uint8 const own = creature->GetLevel();
-        uint8 const offset = LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed);
+        uint8 level = own;
         Map const* map = creature->GetMap();
-        // The viewer's own rule, not the realm's: a level that is told to one client is bounded by
-        // nothing, because there is nobody else for a high view to be wrong for.
-        uint8 const level = map->IsNonRaidDungeon() && map->IsRegularDifficulty()
-            ? LocalLevelScaling::ScaleDungeonCreatureLevelForViewer(own, viewer->GetLevel(), offset)
-            : LocalLevelScaling::ScaleCreatureLevelForViewer(own, viewer->GetLevel(), offset);
+        if (map->IsDungeon())
+        {
+            LocalLevelScaling::LevelBand const* band = DungeonBandFor(map);
+            if (!band)
+                return false;
+            level = LocalLevelScaling::ScaleDungeonCreatureLevelForViewer(viewer->GetLevel(), *band);
+        }
+        else
+        {
+            // The viewer's own rule, not the realm's: a level that is told to one client is bounded by
+            // nothing, because there is nobody else for a high view to be wrong for.
+            uint8 const offset = LocalLevelScaling::CreatureOffset.load(std::memory_order_relaxed);
+            level = LocalLevelScaling::ScaleCreatureLevelForViewer(own, viewer->GetLevel(), offset);
+        }
+
         if (level == own)
             return false;               // their version *is* the creature: nothing to virtualise
 
@@ -239,6 +345,11 @@ namespace
         view.DamageDealtToPool = double(realMaxHealth) / double(view.MaxHealth);
         view.DamageTakenFactor = DestinyWeaver::ViewDamageTakenFactor(HitFrom(view.Stats, info),
                                                                       HitFrom(ownStats, info));
+        view.DamageTakenLow = DestinyWeaver::ViewDamageTakenFactor(SwingFrom(view.Stats, info, 1.0),
+                                                                   SwingFrom(ownStats, info, 1.0));
+        view.DamageTakenHigh = DestinyWeaver::ViewDamageTakenFactor(
+            SwingFrom(view.Stats, info, DestinyWeaver::CREATURE_MAX_WEAPON_DAMAGE_FACTOR),
+            SwingFrom(ownStats, info, DestinyWeaver::CREATURE_MAX_WEAPON_DAMAGE_FACTOR));
         return true;
     }
 
@@ -309,6 +420,30 @@ namespace
     {
         for (uint16 index : VIEW_FIELDS)
             creature->ForceValuesUpdateAtIndex(index);
+        creature->ForceValuesUpdateAtIndex(UNIT_DYNAMIC_FLAGS);
+    }
+
+    /// Keeps the scaling flag on every creature a view can exist for. The object's flag is what makes
+    /// the field non-zero, so it travels in every create block; each recipient's copy is then set or
+    /// cleared in `OnPatchValuesUpdate`. Death and respawn rewrite the dynamic flags, so a living
+    /// creature is marked again on its next update.
+    void MarkScalable(Creature* creature)
+    {
+        if (!creature->HasDynamicFlag(UNIT_DYNFLAG_LEVEL_SCALING) && ScalingAvailable() &&
+            ViewableCreature(creature))
+            creature->SetDynamicFlag(UNIT_DYNFLAG_LEVEL_SCALING);
+    }
+
+    /// The flag one recipient is shown: set while they are looking at their own version, cleared for
+    /// everyone who sees the authored creature.
+    void PatchScalingFlag(ByteBuffer& data, BuildValuesCachePosPointers const& pos, bool viewed)
+    {
+        if (pos.UnitDynamicFlagsPos < 0)
+            return;
+
+        uint32 flags = data.read<uint32>(pos.UnitDynamicFlagsPos);
+        flags = viewed ? (flags | UNIT_DYNFLAG_LEVEL_SCALING) : (flags & ~UNIT_DYNFLAG_LEVEL_SCALING);
+        data.put(pos.UnitDynamicFlagsPos, flags);
     }
 
     constexpr char DAMAGE_REMAINDER_KEY[] = "DestinyWeaver.DamageRemainder";
@@ -618,7 +753,9 @@ public:
             return;
 
         CreatureView view;
-        if (!ViewFor(creature, target, view))
+        bool const viewed = ViewFor(creature, target, view);
+        PatchScalingFlag(data, pos, viewed);
+        if (!viewed)
             return;
 
         CreatureTemplate const* info = creature->GetCreatureTemplate();
@@ -696,8 +833,13 @@ public:
             return;
 
         CreatureView view;
-        if (ViewFor(creature, player, view))
-            damage = std::max<uint32>(1, uint32(double(damage) * view.DamageTakenFactor));
+        if (!ViewFor(creature, player, view))
+            return;
+
+        double const blow = DestinyWeaver::ViewBlow(damage, creature->GetFloatValue(UNIT_FIELD_MINDAMAGE),
+                                                    creature->GetFloatValue(UNIT_FIELD_MAXDAMAGE), view.DamageTakenLow,
+                                                    view.DamageTakenHigh, view.DamageTakenFactor, rand_norm());
+        damage = DestinyWeaver::WholeDamage(blow, rand_norm());
     }
 
     /// The same for a creature's spells.
@@ -752,6 +894,11 @@ public:
         creature->CustomData.Erase(DAMAGE_REMAINDER_KEY);
     }
 
+    void OnCreatureAddWorld(Creature* creature) override
+    {
+        MarkScalable(creature);
+    }
+
     void OnCreatureRemoveWorld(Creature* creature) override
     {
         creature->CustomData.Erase(DAMAGE_REMAINDER_KEY);
@@ -764,6 +911,9 @@ public:
 
         if (!creature->IsAlive() || creature->IsEvadingAttacks())
             creature->CustomData.Erase(DAMAGE_REMAINDER_KEY);
+
+        if (creature->IsAlive())
+            MarkScalable(creature);
 
         // Nothing pending: the whole world pays one relaxed atomic read per creature update.
         if (!g_viewRefreshCount.load(std::memory_order_relaxed))
@@ -853,12 +1003,20 @@ public:
         : WorldScript("destiny_weaver_scaling_owner",
                       { WORLDHOOK_ON_STARTUP, WORLDHOOK_ON_SHUTDOWN, WORLDHOOK_ON_AFTER_CONFIG_LOAD }) { }
 
+    /// A challenge started or stopped: the character's creatures and quest log are re-sent, the same
+    /// refresh a level-up gets.
+    static void RefreshChangedScaling(Player* player)
+    {
+        DestinyWeaver::RefreshClient(player);
+    }
+
     /// The tuning is this realm's own setting, so it is applied on start and on every config load:
     /// a `.reload config` retunes it without a restart.
     static void ApplyTuning()
     {
         uint8 const offset = ScalingOffset();
         LocalLevelScaling::CreatureOffset.store(offset, std::memory_order_relaxed);
+        PublishScope();
 
         // The switches, cached for the fight paths, and the resolvers installed or removed here rather
         // than only at startup: a `.reload config` that turns the feature on (or off) has to take
@@ -874,13 +1032,14 @@ public:
                                                         std::memory_order_relaxed);
         LocalLevelScaling::CreatureViewMaxHealthOwner.store(available ? &ViewMaxHealthForCore : nullptr,
                                                             std::memory_order_relaxed);
+        LocalLevelScaling::ScalingChangedOwner.store(available ? &RefreshChangedScaling : nullptr,
+                                                     std::memory_order_relaxed);
 
         LOG_INFO("module.destiny_weaver",
-                 "open world scaling: creatures per character, level - {} and every stat row with it "
-                 "(health, mana, armor, damage, skills); quest levels follow each character's choice",
+                 "open world scaling: creatures per character, level - {} in the open world and the "
+                 "character's level inside a dungeon's band, every stat row with it (health, mana, armor, "
+                 "damage, skills); quest levels follow each character's choice",
                  offset);
-
-        ApplyRewardTuning();
     }
 
     void OnAfterConfigLoad(bool /*reload*/) override
@@ -906,6 +1065,7 @@ public:
         LocalLevelScaling::CreatureViewArmorOwner.store(nullptr);
         LocalLevelScaling::CreatureViewLevelOwner.store(nullptr);
         LocalLevelScaling::CreatureViewMaxHealthOwner.store(nullptr);
+        LocalLevelScaling::ScalingChangedOwner.store(nullptr);
     }
 };
 

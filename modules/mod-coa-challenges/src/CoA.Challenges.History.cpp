@@ -254,6 +254,7 @@ namespace CoAChallenges
         RefreshInvertedBreathTracking(player);
         RefreshRegenTracking(player);
         RefreshHighRiskTracking(player);
+        RefreshLevelScalingTracking(player);
         RefreshLootedTracking(player);
         SyncMeterAuras(player);
         ReapplyActiveSpells(player, active);

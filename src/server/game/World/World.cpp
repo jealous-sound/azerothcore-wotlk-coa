@@ -415,6 +415,7 @@ void World::SetInitialWorldSettings()
     LOG_INFO("server.loading", "Loading Spell Rank Data...");
     sSpellMgr->LoadSpellRanks();
     sSpellMgr->LoadAddedSpellRanks();
+    sSpellMgr->LoadSpellTwins();
 
     LOG_INFO("server.loading", "Loading Spell Specific And Aura State...");
     sSpellMgr->LoadSpellSpecificAndAuraState();

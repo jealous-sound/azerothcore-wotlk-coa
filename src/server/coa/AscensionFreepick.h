@@ -25,6 +25,7 @@ struct UploadResult
 
 Realm ReadRealm();
 bool RealmIsClassless();
+bool RealmOffersMysticAltars();
 bool IsFreepickHero(Player const* player);
 bool HasFreepickBuild(Player const* player);
 std::vector<AscensionCoATalentState::KnownEntry> KnownEntries(Player const* player);

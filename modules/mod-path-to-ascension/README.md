@@ -40,5 +40,8 @@ vendors, Warchests and the Callboard Cache contents are outside this module.
 ## Configuration
 
 `conf/path_to_ascension.conf.dist`: `PathToAscension.Enable`, `.RealmProfile` (default PTR, the column the
-installed catalog fills), `.VerifiedProgress.Enable`, `.Rewards.Enable`, `.Tracking.Enable`,
-`.LegacyContent.Enable`, `.StarterMountBridge.Enable`.
+installed catalog fills), `.Expansion` (default Vanilla: the expansion whose tutorial variants are offered and
+shown to the client; Onyxia's Lair and Naxxramas stay hidden while they are Wrath raids, Mythic+ Dungeons while
+the server has no Mythic+),
+`.VerifiedProgress.Enable`, `.Rewards.Enable`, `.Tracking.Enable`, `.LegacyContent.Enable`,
+`.StarterMountBridge.Enable`.

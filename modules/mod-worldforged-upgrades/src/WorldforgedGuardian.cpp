@@ -81,8 +81,7 @@ namespace
 
     bool SellsAltars()
     {
-        std::string const model = sConfigMgr->GetOption<std::string>("CoA.ClassModel", "coa");
-        return model == "hero" || model == "wcr";
+        return AscensionFreepick::RealmOffersMysticAltars();
     }
 
     void SendMainMenu(Player* player, Creature* creature)

@@ -27,6 +27,7 @@
 #include "Guild.h"
 #include "InstanceScript.h"
 #include "Language.h"
+#include "LocalLevelScaling.h"
 #include "OutdoorPvPMgr.h"
 #include "Pet.h"
 #include "Player.h"
@@ -1145,6 +1146,10 @@ void Player::UpdateCombatSkills(Unit* victim, WeaponAttackType attType, bool def
 
     uint8 greylevel = Acore::XP::GetGrayLevel(playerLevel);
     uint8 moblevel = defence ? victim->getLevelForTarget(this) : victim->GetLevel(); // if defense than victim == attacker
+    if (!defence)
+        if (Creature const* creature = victim->ToCreature())
+            if (uint8 const view = LocalLevelScaling::ViewLevelFor(this, creature))
+                moblevel = view;
     /*if (moblevel < greylevel)
         return;*/
     // Patch 3.0.8 (2009-01-20): You can no longer skill up weapons on mobs that are immune to damage.
@@ -1947,6 +1952,19 @@ void Player::UpdateForQuestWorldObjects()
 
 void Player::UpdateTitansGrip()
 {
+    constexpr uint32 TitansGrip = 46917;
+    constexpr uint32 TitansGripStaffPenalty = 818047;
+    Item const* main = GetWeaponForAttack(BASE_ATTACK);
+    bool const staff = getClass() == CLASS_HERO && HasActiveSpell(TitansGrip) && CanTitanGrip() && main &&
+        main->GetTemplate()->SubClass == ITEM_SUBCLASS_WEAPON_STAFF;
+    if (staff)
+    {
+        if (!HasAura(TitansGripStaffPenalty))
+            CastSpell(this, TitansGripStaffPenalty, TRIGGERED_FULL_MASK);
+    }
+    else
+        RemoveAurasDueToSpell(TitansGripStaffPenalty);
+
     // 10% damage reduce if 2x2h weapons are used
     if (HasBurningCommander() || !CanTitanGrip())
         RemoveAurasDueToSpell(49152);

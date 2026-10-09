@@ -4,11 +4,15 @@
 #include "AscensionCompatOpcodes.h"
 #include "AscensionFreepick.h"
 #include "AscensionMysticEnchantRules.h"
+#include "Chat.h"
 #include "Config.h"
+#include "Creature.h"
+#include "DBCStores.h"
 #include "DatabaseEnv.h"
 #include "GameObject.h"
 #include "Item.h"
 #include "Log.h"
+#include "LootMgr.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -17,6 +21,7 @@
 #include "SpellAuras.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
+#include "SpellScript.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include <algorithm>
@@ -24,6 +29,7 @@
 #include <deque>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace AscensionMysticEnchant
 {
@@ -798,6 +804,190 @@ public:
     }
 };
 
+bool IsMysticScroll(uint32 item)
+{
+    return item == UNTARNISHED_MYSTIC_SCROLL || (Ready && Loaded.FindItem(item));
+}
+
+class AscensionMysticEnchantLoot final : public GlobalScript
+{
+public:
+    AscensionMysticEnchantLoot() : GlobalScript("AscensionMysticEnchantLoot", { GLOBALHOOK_ON_ITEM_ROLL }) { }
+
+    bool OnItemRoll(Player const*, LootStoreItem const* item, float& chance, Loot&, LootStore const&) override
+    {
+        if (!item->reference && !AscensionFreepick::RealmOffersMysticAltars() && IsMysticScroll(item->itemid))
+            chance = 0.0f;
+        return true;
+    }
+};
+
+struct SpellLink
+{
+    std::vector<std::pair<uint32, flag96>> Masks;
+    std::vector<int32> Targets;
+};
+
+std::unordered_map<uint32, SpellLink> Links;
+
+void AddLinks(SpellLink& link, uint32 spellId, std::unordered_map<uint32, std::vector<int32>> const& affects, uint32 depth)
+{
+    SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
+    if (!spell)
+        return;
+    if (auto const named = affects.find(spellId); named != affects.end())
+        link.Targets.insert(link.Targets.end(), named->second.begin(), named->second.end());
+    for (SpellEffectInfo const& effect : spell->GetEffects())
+    {
+        if (effect.SpellClassMask)
+            link.Masks.emplace_back(spell->SpellFamilyName, effect.SpellClassMask);
+        if (effect.TriggerSpell && depth < 2)
+            AddLinks(link, effect.TriggerSpell, affects, depth + 1);
+    }
+}
+
+void LoadLinks()
+{
+    std::unordered_map<uint32, std::vector<int32>> affects;
+    for (SpellAffectEntry const* entry : sSpellAffectStore)
+        affects[entry->ModifierSpellID].push_back(int32(entry->AffectedSpellID));
+    Links.clear();
+    for (Enchant const& enchant : Loaded.Rows)
+    {
+        SpellLink link;
+        AddLinks(link, enchant.Spell, affects, 0);
+        if (!link.Masks.empty() || !link.Targets.empty())
+            Links.emplace(enchant.Spell, std::move(link));
+    }
+}
+
+struct KnownSpells
+{
+    std::unordered_map<uint32, flag96> Families;
+    std::unordered_set<uint32> Chains;
+};
+
+KnownSpells Known(Player const* player)
+{
+    KnownSpells known;
+    for (auto const& [spellId, state] : player->GetSpellMap())
+    {
+        if (state->State == PLAYERSPELL_REMOVED || !player->HasSpell(spellId))
+            continue;
+        SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
+        if (!spell)
+            continue;
+        known.Families[spell->SpellFamilyName] |= spell->SpellFamilyFlags;
+        known.Chains.insert(spellId);
+        known.Chains.insert(sSpellMgr->GetFirstSpellInChain(spellId));
+    }
+    return known;
+}
+
+bool AffectsKnownSpell(KnownSpells const& known, Enchant const& enchant)
+{
+    auto const link = Links.find(enchant.Spell);
+    if (link == Links.end())
+        return false;
+    for (auto const& [family, mask] : link->second.Masks)
+        if (auto const flags = known.Families.find(family); flags != known.Families.end() && (flags->second & mask))
+            return true;
+    for (int32 target : link->second.Targets)
+        if (known.Chains.contains(uint32(target < 0 ? -target : target)))
+            return true;
+    return false;
+}
+
+Enchant const* RevealScroll(Player* player)
+{
+    Character const character = Describe(player, CurrentClientConfig());
+    auto const exists = [](uint32 entry) { return sObjectMgr->GetItemTemplate(entry) != nullptr; };
+    if (IsStockClass(character.Class))
+        return RollReveal(Loaded, character, exists,
+            [&character](Enchant const& enchant) { return ClassAllowed(enchant, character.Class); },
+            rand_norm(), rand_norm(), rand_norm());
+    KnownSpells const known = Known(player);
+    return RollReveal(Loaded, character, exists,
+        [&known](Enchant const& enchant) { return AffectsKnownSpell(known, enchant); }, rand_norm(), rand_norm(), rand_norm());
+}
+
+class spell_ascension_unidentified_mystic_scroll : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_unidentified_mystic_scroll);
+
+    SpellCastResult CheckReveal()
+    {
+        Player* player = GetCaster()->ToPlayer();
+        Item* scroll = GetCastItem();
+        if (!player || !scroll || scroll->GetEntry() != UNIDENTIFIED_MYSTIC_SCROLL)
+            return SPELL_FAILED_DONT_REPORT;
+        if (!Ready || !AscensionFreepick::RealmOffersMysticAltars() || IsConquestOfAzerothClass(player->getClass()))
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("Mystic Enchants are not available on this realm.");
+            return SPELL_FAILED_DONT_REPORT;
+        }
+        if (!player->GetFreeInventorySpace())
+        {
+            player->SendEquipError(EQUIP_ERR_INVENTORY_FULL, nullptr);
+            return SPELL_FAILED_DONT_REPORT;
+        }
+        return SPELL_CAST_OK;
+    }
+
+    void Reveal(SpellEffIndex)
+    {
+        Player* player = GetCaster()->ToPlayer();
+        if (!player)
+            return;
+        Enchant const* enchant = RevealScroll(player);
+        ItemPosCountVec destination;
+        if (!enchant || player->CanStoreNewItem(NULL_BAG, NULL_SLOT, destination, enchant->Item, 1) != EQUIP_ERR_OK)
+            return;
+        if (Item* item = player->StoreNewItem(destination, enchant->Item, true))
+            player->SendNewItem(item, 1, true, false);
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_ascension_unidentified_mystic_scroll::CheckReveal);
+        OnEffectHit += SpellEffectFn(spell_ascension_unidentified_mystic_scroll::Reveal, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+constexpr float SCROLL_DROP_CHANCE = 4.0f;
+constexpr uint8 SCROLL_DROP_MIN_LEVEL = 10;
+
+class AscensionMysticEnchantScrollDrops final : public MiscScript
+{
+public:
+    AscensionMysticEnchantScrollDrops() : MiscScript("AscensionMysticEnchantScrollDrops",
+        { MISCHOOK_ON_AFTER_LOOT_TEMPLATE_PROCESS }) { }
+
+    void OnAfterLootTemplateProcess(Loot* loot, LootTemplate const*, LootStore const& store, Player* owner, bool personal,
+        bool, uint16 lootMode) override
+    {
+        if (!loot || !owner || personal || &store != &LootTemplates_Creature || !(lootMode & LOOT_MODE_DEFAULT) ||
+            !AscensionFreepick::RealmOffersMysticAltars() || !owner->GetMap() || loot->items.size() >= MAX_NR_LOOT_ITEMS)
+            return;
+        Creature const* creature = owner->GetMap()->GetCreature(loot->sourceWorldObjectGUID);
+        if (!creature || creature->IsPet() || creature->GetCharmerOrOwnerGUID() ||
+            creature->GetCreatureType() == CREATURE_TYPE_CRITTER)
+            return;
+        CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate();
+        if (!creatureTemplate->lootid || !LootTemplates_Creature.HaveLootFor(creatureTemplate->lootid))
+            return;
+
+        uint32 const level = creatureTemplate->minlevel;
+        uint32 count = 0;
+        if (creature->IsDungeonBoss() || creatureTemplate->rank == CREATURE_ELITE_WORLDBOSS)
+            count = std::max<uint32>(1, level / 10);
+        else if (level > SCROLL_DROP_MIN_LEVEL && roll_chance_f(SCROLL_DROP_CHANCE))
+            count = 1;
+        if (count)
+            loot->AddItem(LootStoreItem(UNIDENTIFIED_MYSTIC_SCROLL, 0, 100.0f, false, LOOT_MODE_DEFAULT, 0, count, count));
+    }
+};
+
 class AscensionMysticEnchantWorld final : public WorldScript
 {
 public:
@@ -806,6 +996,8 @@ public:
     void OnStartup() override
     {
         Ready = LoadCatalog(Loaded);
+        if (Ready)
+            LoadLinks();
         if (!Ready)
             LOG_ERROR("coa", "Mystic enchants are unavailable: MysticEnchant.dbc did not load");
     }
@@ -820,4 +1012,8 @@ void AddAscensionMysticEnchantScripts()
     RegisterAscensionClientConfig(&AscensionMysticEnchant::AppendExtractCosts);
     new AscensionMysticEnchant::AscensionMysticEnchantPlayer();
     new AscensionMysticEnchant::AscensionMysticEnchantWorld();
+    new AscensionMysticEnchant::AscensionMysticEnchantLoot();
+    new AscensionMysticEnchant::AscensionMysticEnchantScrollDrops();
+    RegisterSpellScriptWithArgs(AscensionMysticEnchant::spell_ascension_unidentified_mystic_scroll,
+        "spell_ascension_unidentified_mystic_scroll");
 }

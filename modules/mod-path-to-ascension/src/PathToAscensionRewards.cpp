@@ -111,8 +111,7 @@ namespace PathToAscension
             auto const& f = tutorial.fields;
             if (!tutorial.CategoryId() || !f[RealmAvailabilityField(settings.realm)]
                 || player->GetLevel() < MinimumLevel || !MatchesRaceAndClass(player, tutorial)
-                || (f[TutorialField::Expansion] != AnyExpansion && f[TutorialField::Expansion] != settings.expansion
-                    && !IsLegacyAvailable(tutorial.Id())))
+                || !IsExpansionOffered(tutorial))
                 return false;
 
             bool hasPrevious = false;

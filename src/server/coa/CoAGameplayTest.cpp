@@ -7,6 +7,7 @@
 #include "AccountMgr.h"
 #include "AscensionCoATalentState.h"
 #include "AscensionItemScaling.h"
+#include "AscensionNativeItemScaling.h"
 #include "AscensionQuestLog.h"
 #include "AscensionSpecialization.h"
 #include "AscensionWisdomball.h"
@@ -17,6 +18,8 @@
 #include "CharacterCache.h"
 #include "CharmInfo.h"
 #include "Chat.h"
+#include "ClientDBC.h"
+#include "CoACreatureScaling.h"
 #include "Config.h"
 #include "Creature.h"
 #include "CreatureAI.h"
@@ -76,6 +79,7 @@
 #include <bit>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -366,6 +370,20 @@ struct Actor
     std::map<uint32, uint32> supersededFor;
     std::set<uint32> clientSpells;
     std::map<uint32, uint32> clientSpellbookCopies;
+    std::map<uint32, bool> clientNotable;
+    std::map<uint32, uint32> loudSupersedes;
+    std::map<uint32, bool> clientSpellHidden;
+    std::map<uint32, std::array<std::string, 2>> clientSpellRows;
+    std::map<uint32, uint32> chatLines;
+    std::map<uint32, bool> clientQuiet;
+    std::map<uint32, bool> clientNoPlace;
+    std::map<uint32, std::vector<uint32>> entryRows;
+    std::set<uint32> indexedEntries;
+    uint32 clientEntryMaximum = 0;
+    std::map<uint32, uint32> placingLearns;
+    std::map<uint32, uint32> clientSpellRank;
+    std::map<uint32, uint32> placingSupersedes;
+    std::map<uint32, uint32> buttonKeepingRemovals;
     std::vector<std::pair<uint32, uint32>> announcements;
     uint32 lastBuyOrdinal = 0;
     uint32 lastBuyCues = 0;
@@ -379,6 +397,7 @@ struct Actor
     uint32 vendorWindows = 0;
     uint32 vendorItems = 0;
     std::map<uint32, uint32> vendorPrice;
+    std::map<uint32, uint32> vendorExtendedCost;
     uint32 vendorPriceSum = 0;
     uint32 whoResponses = 0;
     uint32 lootReceived = 0;
@@ -608,7 +627,7 @@ void ObserveExtensionPacket(Actor& actor, WorldPacket const& packet)
         packet.GetOpcode() != SMSG_MOVE_UNSET_CAN_FLY && packet.GetOpcode() != SMSG_CONVERT_RUNE &&
         packet.GetOpcode() != SMSG_ADD_RUNE_POWER && packet.GetOpcode() != SMSG_LEARNED_SPELL &&
         packet.GetOpcode() != SMSG_SUPERCEDED_SPELL && packet.GetOpcode() != SMSG_REMOVED_SPELL &&
-        packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE)
+        packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE && packet.GetOpcode() != SMSG_MOVE_KNOCK_BACK)
         return;
 
     ++actor.extensionPackets[packet.GetOpcode()];
@@ -616,6 +635,37 @@ void ObserveExtensionPacket(Actor& actor, WorldPacket const& packet)
     if (payloads.size() < MaxPayloadsPerOpcode)
         payloads.emplace_back(packet.empty() ? std::string()
             : std::string(reinterpret_cast<char const*>(packet.contents()), packet.size()));
+}
+
+uint32 NativeAdvancementMaximum()
+{
+    static uint32 const maximum = []
+    {
+        uint32 highest = 0;
+        ClientDBC table;
+        if (table.Load(sWorld->GetDataPath() + "dbc/CharacterAdvancement.dbc", 1))
+            for (uint32 index = 0; index < table.GetRecordCount(); ++index)
+                highest = std::max(highest, table.GetRecord(index).GetUInt32(0));
+        return highest;
+    }();
+    return maximum;
+}
+
+std::unordered_map<uint32, uint32> const& NativeCustomAttributes()
+{
+    static std::unordered_map<uint32, uint32> const attributes = []
+    {
+        std::unordered_map<uint32, uint32> fourthDwords;
+        ClientDBC table;
+        if (table.Load(sWorld->GetDataPath() + "dbc/SpellCustomAttr.dbc", 11))
+            for (uint32 index = 0; index < table.GetRecordCount(); ++index)
+            {
+                ClientDBC::Record const row = table.GetRecord(index);
+                fourthDwords[row.GetUInt32(1)] = row.GetUInt32(5);
+            }
+        return fourthDwords;
+    }();
+    return attributes;
 }
 
 void ObservePacket(Actor& actor, WorldPacket const& packet)
@@ -743,11 +793,103 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         WorldPacket row(packet);
         uint32 rowId = 0;
         uint32 marked = 0;
-        row >> rowId >> marked;
+        uint32 firstAttributes = 0;
+        uint32 secondAttributes = 0;
+        uint32 thirdAttributes = 0;
+        uint32 fourthAttributes = 0;
+        row >> rowId >> marked >> firstAttributes >> secondAttributes >> thirdAttributes >> fourthAttributes;
+        actor.clientNotable[marked] = (thirdAttributes & 0x400) != 0;
+        actor.clientQuiet[marked] = (fourthAttributes & 0x40000) != 0;
+        actor.clientNoPlace[marked] = (fourthAttributes & 0x1000000) != 0;
         ++actor.notifyRows[marked];
         ++actor.notifyRowTotal;
         actor.notifiedAt.emplace(marked, actor.packetOrdinal);
     }
+
+    constexpr uint16 SmsgPatchSpell = 0x092A;
+    constexpr std::size_t SpellAttributesOffset = 4 * sizeof(uint32);
+    if (packet.GetOpcode() == SmsgPatchSpell && packet.size() >= SpellAttributesOffset + sizeof(uint32))
+    {
+        uint32 const spell = packet.read<uint32>(0);
+        actor.clientSpellHidden[spell] = (packet.read<uint32>(SpellAttributesOffset) &
+            (SPELL_ATTR0_IS_TRADESKILL | SPELL_ATTR0_DO_NOT_DISPLAY)) != 0;
+        auto& rows = actor.clientSpellRows[spell];
+        rows[0] = std::move(rows[1]);
+        rows[1].assign(reinterpret_cast<char const*>(packet.contents()), packet.size());
+        constexpr std::size_t SpellRecordBytes = 170 * sizeof(uint32);
+        constexpr uint32 RankString = 2;
+        std::size_t offset = SpellRecordBytes;
+        for (uint32 index = 0; index <= RankString && offset + sizeof(uint32) <= packet.size(); ++index)
+        {
+            uint32 const length = packet.read<uint32>(offset);
+            offset += sizeof(uint32);
+            if (index == RankString && offset + length <= packet.size())
+            {
+                uint32 rank = 0;
+                for (std::size_t at = offset; at < offset + length; ++at)
+                {
+                    char const character = char(packet.contents()[at]);
+                    if (character >= '0' && character <= '9')
+                        rank = rank * 10 + uint32(character - '0');
+                    else if (rank)
+                        break;
+                }
+                actor.clientSpellRank[spell] = rank;
+            }
+            offset += length;
+        }
+    }
+    constexpr uint16 SmsgPatchCharacterAdvancement = 0x064A;
+    constexpr std::size_t AdvancementEntrySpells = 9;
+    if (packet.GetOpcode() == SmsgPatchCharacterAdvancement && packet.size() >= sizeof(uint32))
+    {
+        WorldPacket row(packet);
+        uint32 id = 0;
+        std::string name;
+        row >> id >> name;
+        for (uint32 skipped = 0; skipped < 3; ++skipped)
+            row.read_skip<uint32>();
+        std::vector<uint32> spells(AdvancementEntrySpells);
+        for (uint32& spell : spells)
+            row >> spell;
+        if (!actor.clientEntryMaximum)
+            actor.clientEntryMaximum = NativeAdvancementMaximum();
+        if (actor.entryRows.emplace(id, spells).second)
+        {
+            actor.indexedEntries.clear();
+            if (id > actor.clientEntryMaximum)
+            {
+                actor.entryRows.erase(actor.clientEntryMaximum);
+                actor.clientEntryMaximum = id;
+            }
+        }
+        else
+        {
+            actor.entryRows[id] = spells;
+            actor.indexedEntries.insert(id);
+        }
+    }
+    auto const flagged = [](std::map<uint32, bool> const& flags, uint32 spell)
+    {
+        auto const found = flags.find(spell);
+        return found != flags.end() && found->second;
+    };
+    auto const learnFlag = [](std::map<uint32, bool> const& pushed, uint32 spell, uint32 nativeBit)
+    {
+        if (auto const found = pushed.find(spell); found != pushed.end())
+            return found->second;
+        auto const native = NativeCustomAttributes().find(spell);
+        return native != NativeCustomAttributes().end() && (native->second & nativeBit) != 0;
+    };
+    auto const isEntry = [&actor](uint32 spell)
+    {
+        uint32 const first = sSpellMgr->GetFirstSpellInChain(spell);
+        for (uint32 id : actor.indexedEntries)
+            for (uint32 listed : actor.entryRows.at(id))
+                if (listed && (listed == spell || listed == first))
+                    return true;
+        return false;
+    };
 
     if (packet.GetOpcode() == SMSG_QUESTGIVER_OFFER_REWARD ||
         packet.GetOpcode() == SMSG_QUESTGIVER_REQUEST_ITEMS ||
@@ -777,6 +919,10 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         uint32 const removed = packet.read<uint32>(0);
         actor.clientSpells.erase(removed);
         actor.clientSpellbookCopies.erase(removed);
+        if (!flagged(actor.clientSpellHidden, removed))
+            ++actor.chatLines[removed];
+        if (packet.size() > sizeof(uint32) && packet.read<uint8>(sizeof(uint32)) == 0)
+            ++actor.buttonKeepingRemovals[removed];
     }
 
     if (packet.GetOpcode() == SMSG_SEND_UNLEARN_SPELLS)
@@ -805,6 +951,14 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         actor.clientSpellbookCopies.erase(previous);
         actor.clientSpells.insert(replacement);
         ++actor.clientSpellbookCopies[replacement];
+        auto const notable = actor.clientNotable.find(replacement);
+        if (notable == actor.clientNotable.end() || notable->second)
+            ++actor.loudSupersedes[replacement];
+        if (!isEntry(previous) && !isEntry(replacement) && !flagged(actor.clientSpellHidden, replacement))
+            ++actor.chatLines[replacement];
+        if (auto const rank = actor.clientSpellRank.find(replacement);
+            rank == actor.clientSpellRank.end() || rank->second <= 1)
+            ++actor.placingSupersedes[replacement];
         actor.announcements.emplace_back(actor.packetOrdinal, replacement);
     }
 
@@ -814,6 +968,11 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         uint32 announced = 0;
         announcement >> announced;
         ++actor.learnedAlerts[announced];
+        bool const hidden = flagged(actor.clientSpellHidden, announced);
+        if (!learnFlag(actor.clientQuiet, announced, 0x40000) && !isEntry(announced) && !hidden)
+            ++actor.chatLines[announced];
+        if (!learnFlag(actor.clientNoPlace, announced, 0x1000000) && !hidden)
+            ++actor.placingLearns[announced];
         actor.announced.insert(announced);
         actor.clientSpells.insert(announced);
         ++actor.clientSpellbookCopies[announced];
@@ -898,6 +1057,7 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
         ++actor.vendorWindows;
         actor.vendorItems = rows;
         actor.vendorPrice.clear();
+        actor.vendorExtendedCost.clear();
         actor.vendorPriceSum = 0;
         for (uint8 i = 0; i < rows; ++i)
         {
@@ -914,6 +1074,7 @@ void ObservePacket(Actor& actor, WorldPacket const& packet)
             if (shelfItem != 0)
             {
                 actor.vendorPrice[shelfItem] = price;
+                actor.vendorExtendedCost[shelfItem] = extendedCost;
                 actor.vendorPriceSum += price;
             }
         }
@@ -964,6 +1125,8 @@ public:
         Require(_scenario.get<uint32>("schema") == 1, "Unsupported scenario schema");
         _timeout = _scenario.get<uint32>("timeout_ms", 90000);
         Require(_timeout > 0 && _timeout <= 600000, "Invalid scenario timeout");
+        if (_scenario.get<bool>("creature_scaling", false))
+            _creatureScaling.emplace();
         _report.put("schema", 1);
         _report.put("run_id", _runId);
         _report.put("scenario", _scenario.get<std::string>("name"));
@@ -1751,6 +1914,8 @@ private:
             return unit->GetVictim() == GetUnit(step.get<std::string>("target")) ? 1.0 : 0.0;
         if (metric == "player_name")
             return unit->GetName() == step.get<std::string>("name") ? 1.0 : 0.0;
+        if (metric == "race")
+            return unit->getRace();
         if (metric == "name_lookup")
         {
             std::string name = step.get<std::string>("name");
@@ -2148,6 +2313,12 @@ private:
                 return action ? action->packedData : 0;
             return action && action->GetType() == ACTION_BUTTON_SPELL ? action->GetAction() : 0;
         }
+        if (metric == "persisted_action_button")
+        {
+            ActionButton const* action = player->GetActionButton(uint8(step.get<uint32>("button")));
+            return action && action->GetType() == ACTION_BUTTON_SPELL ?
+                player->GetSavedActionButtonSpell(action->GetAction()) : 0;
+        }
         if (metric == "action_bar_unknown_spells")
         {
             uint32 unknown = 0;
@@ -2210,6 +2381,66 @@ private:
             auto const found = swaps.find(spell);
             return found == swaps.end() ? 0.0 : double(found->second);
         }
+        if (metric == "spellbook_loud_supersedes_for")
+        {
+            auto const& loud = _actors.at(step.get<std::string>("actor")).loudSupersedes;
+            auto const found = loud.find(spell);
+            return found == loud.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "client_chat_lines_for")
+        {
+            auto const& lines = _actors.at(step.get<std::string>("actor")).chatLines;
+            auto const found = lines.find(spell);
+            return found == lines.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "client_placing_supersedes_for")
+        {
+            auto const& placing = _actors.at(step.get<std::string>("actor")).placingSupersedes;
+            auto const found = placing.find(spell);
+            return found == placing.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "client_spell_rank_for")
+        {
+            auto const& ranks = _actors.at(step.get<std::string>("actor")).clientSpellRank;
+            auto const found = ranks.find(spell);
+            return found == ranks.end() ? -1.0 : double(found->second);
+        }
+        if (metric == "client_placing_learns_for")
+        {
+            auto const& placing = _actors.at(step.get<std::string>("actor")).placingLearns;
+            auto const found = placing.find(spell);
+            return found == placing.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "client_removals_keeping_buttons_for")
+        {
+            auto const& kept = _actors.at(step.get<std::string>("actor")).buttonKeepingRemovals;
+            auto const found = kept.find(spell);
+            return found == kept.end() ? 0.0 : double(found->second);
+        }
+        if (metric == "client_spell_row_restored")
+        {
+            auto const& rows = _actors.at(step.get<std::string>("actor")).clientSpellRows;
+            auto const found = rows.find(spell);
+            if (found == rows.end() || found->second[0].size() != found->second[1].size() ||
+                found->second[0].size() < 5 * sizeof(uint32))
+                return 0.0;
+            std::string hidden = found->second[0];
+            std::string const& restored = found->second[1];
+            constexpr std::size_t AttributesOffset = 4 * sizeof(uint32);
+            uint32 attributes = 0;
+            std::memcpy(&attributes, hidden.data() + AttributesOffset, sizeof(attributes));
+            if (!(attributes & SPELL_ATTR0_DO_NOT_DISPLAY))
+                return 0.0;
+            attributes &= ~uint32(SPELL_ATTR0_DO_NOT_DISPLAY);
+            std::memcpy(hidden.data() + AttributesOffset, &attributes, sizeof(attributes));
+            return hidden == restored ? 1.0 : 0.0;
+        }
+        if (metric == "spellbook_client_notable")
+        {
+            auto const& notable = _actors.at(step.get<std::string>("actor")).clientNotable;
+            auto const found = notable.find(spell);
+            return found == notable.end() ? -1.0 : double(found->second);
+        }
         if (metric == "spellbook_cues_in_last_buy")
             return double(_actors.at(step.get<std::string>("actor")).lastBuyCues);
         if (metric == "spellbook_last_buy_cued")
@@ -2244,6 +2475,12 @@ private:
             auto const& prices = _actors.at(step.get<std::string>("actor")).vendorPrice;
             auto const found = prices.find(step.get<uint32>("item", 0));
             return found == prices.end() ? -1.0 : double(found->second);
+        }
+        if (metric == "vendor_extended_cost")
+        {
+            auto const& costs = _actors.at(step.get<std::string>("actor")).vendorExtendedCost;
+            auto const found = costs.find(step.get<uint32>("item", 0));
+            return found == costs.end() ? -1.0 : double(found->second);
         }
         if (metric == "quest_rewarded")
         {
@@ -2994,8 +3231,10 @@ private:
         }
         if (metric == "pet_entry" || metric == "pet_aura_stacks" || metric == "pet_aura_amount" ||
             metric == "pet_aura_amplitude_ms" || metric == "pet_aura_duration_ms" || metric == "pet_max_health" ||
+            metric == "pet_health" ||
             metric == "pet_attack_power" || metric == "pet_run_speed_rate" || metric == "pet_is_banker" ||
-            metric == "pet_display" || metric == "pet_scale" || metric == "pet_knows_spell" ||
+            metric == "pet_display" || metric == "pet_native_display" || metric == "pet_scale" ||
+            metric == "pet_knows_spell" ||
             metric == "pet_distance" || metric == "pet_spell_bar_count")
         {
             Creature* pet = player->GetGuardianPet();
@@ -3009,6 +3248,8 @@ private:
                 return pet && pet->HasNpcFlag(UNIT_NPC_FLAG_BANKER);
             if (metric == "pet_display")
                 return pet ? pet->GetDisplayId() : 0;
+            if (metric == "pet_native_display")
+                return pet ? pet->GetNativeDisplayId() : 0;
             if (metric == "pet_scale")
                 return pet ? double(pet->GetObjectScale()) : 0.0;
             if (metric == "pet_spell_bar_count")
@@ -3033,6 +3274,8 @@ private:
                 return player->GetExactDist2d(pet);
             if (metric == "pet_max_health")
                 return pet->GetMaxHealth();
+            if (metric == "pet_health")
+                return pet->GetHealth();
             if (metric == "pet_attack_power")
                 return pet->GetTotalAttackPowerValue(BASE_ATTACK);
             if (metric == "pet_run_speed_rate")
@@ -3059,6 +3302,13 @@ private:
             return player->GetSpellCharges(sSpellMgr->GetSpellInfo(spell)).Available;
         if (metric == "global_cooldown_ms")
             return player->GetGlobalCooldownMgr().GetGlobalCooldown(sSpellMgr->GetSpellInfo(spell));
+        if (metric == "equipped_item")
+        {
+            uint32 slot = step.get<uint32>("slot");
+            Require(slot < EQUIPMENT_SLOT_END, "Equipment observation needs a slot from 0 through 18");
+            Item const* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, uint8(slot));
+            return item ? item->GetEntry() : 0;
+        }
         if (metric == "item_count")
         {
             uint32 item = step.get<uint32>("item");
@@ -3324,7 +3574,8 @@ private:
                             countItem(item);
             return count;
         }
-        if (metric == "carried_item_level" || metric == "carried_item_required_level")
+        if (metric == "carried_item_level" || metric == "carried_item_required_level" ||
+            metric == "carried_item_armor" || metric == "carried_item_scaling_level")
         {
             uint32 const baseEntry = step.get<uint32>("item");
             Require(sObjectMgr->GetItemTemplate(baseEntry) != nullptr, "Unknown item in metric");
@@ -3333,8 +3584,15 @@ private:
             {
                 if (ItemScaling::BaseEntry(item->GetEntry()) != baseEntry)
                     return;
-                ItemTemplate const* proto = item->GetTemplate();
-                highest = std::max(highest, metric == "carried_item_level" ? proto->ItemLevel : proto->RequiredLevel);
+                ItemTemplate const* proto = LocalLevelScaling::InstanceTemplateFor(item, item->GetTemplate());
+                uint32 value = proto->ItemLevel;
+                if (metric == "carried_item_required_level")
+                    value = proto->RequiredLevel;
+                else if (metric == "carried_item_armor")
+                    value = proto->Armor;
+                else if (metric == "carried_item_scaling_level")
+                    value = NativeItemScaling::InstanceLevel(item);
+                highest = std::max(highest, value);
             };
             for (uint8 slot = EQUIPMENT_SLOT_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
                 if (Item* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
@@ -3474,7 +3732,7 @@ private:
             });
             return selected == known.end() ? 0 : selected->Rank;
         }
-        if (metric == "server_packet_u32")
+        if (metric == "server_packet_u32" || metric == "server_packet_float")
         {
             Actor const& actor = _actors.at(step.get<std::string>("actor"));
             uint16 const opcode = uint16(step.get<uint32>("opcode"));
@@ -3503,11 +3761,23 @@ private:
                 ++offset;
             }
             offset += std::size_t(index) * sizeof(uint32);
+            if (metric == "server_packet_float" && step.get<bool>("from_end", false))
+            {
+                std::size_t const tail = (std::size_t(index) + 1) * sizeof(uint32);
+                if (tail > payload->size())
+                    return -1;
+                offset = payload->size() - tail;
+            }
             if (offset > payload->size() || payload->size() - offset < sizeof(uint32))
                 return -1;
             uint32 value = 0;
             for (uint32 byte = 0; byte < sizeof(uint32); ++byte)
                 value |= uint32(uint8((*payload)[offset + byte])) << (byte * 8);
+            if (metric == "server_packet_float")
+            {
+                float const number = std::bit_cast<float>(value);
+                return std::isfinite(number) ? double(number) : -1;
+            }
             return value;
         }
         if (metric == "quest_log_sent_level" || metric == "quest_log_sent_xp")
@@ -3738,8 +4008,20 @@ private:
             if (!_relogging)
             {
                 Player* player = GetPlayer(step.get<std::string>("actor"));
+                auto const race = step.get_optional<uint32>("race");
+                if (race)
+                    Require(*race > 0 && *race <= 255 && sObjectMgr->GetPlayerInfo(uint8(*race), player->getClass()),
+                        "Relog race needs an available race/class combination");
                 CharacterDatabaseTransaction transaction = CharacterDatabase.BeginTransaction();
                 player->SaveToDB(transaction, false, true);
+                if (race)
+                {
+                    CharacterDatabasePreparedStatement* change =
+                        CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_RACE);
+                    change->SetData(0, uint8(*race));
+                    change->SetData(1, player->GetGUID().GetCounter());
+                    transaction->Append(change);
+                }
                 _relogSave.emplace(CharacterDatabase.AsyncCommitTransaction(transaction));
                 _relogging = true;
                 return;
@@ -3751,6 +4033,12 @@ private:
                 Require(_relogSave->m_future.get(), "Relog save transaction failed");
                 _relogSave.reset();
                 actor.session->LogoutPlayer(false);
+                if (auto race = step.get_optional<uint32>("race"))
+                {
+                    CharacterCacheEntry const* cached = sCharacterCache->GetCharacterCacheByGuid(actor.guid);
+                    Require(cached != nullptr, "Relog race needs a cached character");
+                    sCharacterCache->UpdateCharacterData(actor.guid, cached->Name, cached->Sex, uint8(*race));
+                }
                 LogIn(actor);
                 return;
             }
@@ -4929,6 +5217,7 @@ private:
     std::map<std::string, Target> _targets;
     std::map<std::string, double> _snapshots;
     QueryCallbackProcessor _queries;
+    std::optional<CreatureScaling::TestOverride> _creatureScaling;
 };
 
 enum class TeardownStage

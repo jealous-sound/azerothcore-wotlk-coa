@@ -32,6 +32,8 @@ uint32 ForgetAscensionClassTalents(Player* player);
 
 uint32 GetAscensionTalentRank(Player const* player, uint32 entryId);
 
+bool RestoreAscensionSpecializationSignature(Player* player);
+
 std::vector<AscensionCoATalentState::KnownEntry> GetAscensionKnownTalentEntries(Player const* player);
 
 bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank);

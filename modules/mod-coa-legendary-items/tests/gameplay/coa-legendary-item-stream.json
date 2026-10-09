@@ -3,7 +3,7 @@
   "name": "CoA Legendary Items: item stream",
   "contract": [
     "Requires CoALegendaryItems.Enable=1, DropChance=100, StopDropLevel=60, DestinyWeaver.Enable=1,",
-    "LevelScaling=1, offset=3, CoA.SendDisplayPatches=1. World entry streams SMSG_PATCH_ITEM rows only for items",
+    "LevelScaling=1, offset=5, CoA.SendDisplayPatches=1. World entry streams SMSG_PATCH_ITEM rows only for items",
     "the character holds, not the whole legendary table. Single and bulk item queries add the queried rows once",
     "each: all 64 designs have matching eight-field rows, with no ninth field, and so do the boundary level",
     "variants. Native bulk item queries supply correct names, legendary quality, slots, custom class masks and",

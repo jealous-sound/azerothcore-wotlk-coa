@@ -46,8 +46,8 @@ METRICS = {
     'health', 'health_pct', 'max_health', 'creature_type', 'respawn_remaining', 'power', 'max_power', 'alive', 'combat', 'victim', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive', 'aura_visible',
     'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
-    'action_button', 'action_button_packed', 'item_count', 'carried_item_count', 'carried_pool_item_count',
-    'carried_variant_item_count', 'client_knows_spell', 'client_spellbook_copies',
+    'action_button', 'action_button_packed', 'persisted_action_button', 'item_count', 'carried_item_count',
+    'carried_pool_item_count', 'carried_variant_item_count', 'client_knows_spell', 'client_spellbook_copies',
     'pool_variant_count', 'pool_retired_item_count', 'pool_row_count', 'pool_item_present',
     'cache_token_count', 'cache_token_stage', 'cache_token_present',
     'free_inventory_slots', 'mail_count', 'mail_item_count', 'mail_has_item',
@@ -58,7 +58,8 @@ METRICS = {
     'owned_creature_scale', 'owned_creature_visible', 'owned_creature_display', 'unit_scale', 'combat_reach',
     'token_count', 'item_sell_price', 'creature_model_scale', 'creature_model_display',
     'taxi_node', 'in_flight', 'taxi_destination', 'stabled_pet_count', 'stable_result', 'pet_rows', 'instance_binds_listed', 'pet_entry', 'pet_aura_stacks', 'pet_aura_duration_ms', 'pet_is_banker', 'pet_display',
-    'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading', 'pet_spell_bar_count',
+    'pet_native_display', 'race', 'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading',
+    'pet_spell_bar_count',
     'owned_creature_count', 'owned_creature_weapon_damage_min',
     'owned_creature_spell_hit_chance', 'owned_creature_attackable',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'viewpoint_entry', 'seer_entry', 'private_instance',
@@ -69,14 +70,18 @@ METRICS = {
     'spellbook_buys_granted', 'spellbook_unannounced_buys', 'spellbook_misannounced_buys',
     'spellbook_notify_rows', 'spellbook_notified_spells', 'spellbook_unnotified_buys',
     'trainer_list_packets', 'trainer_window_rows', 'trainer_window_state', 'trainer_window_ability',
-    'vendor_list_packets', 'vendor_items', 'vendor_price', 'vendor_price_sum',
-    'spellbook_superseded_packets', 'spellbook_superseded_for',
+    'vendor_list_packets', 'vendor_items', 'vendor_price', 'vendor_price_sum', 'vendor_extended_cost',
+    'spellbook_superseded_packets', 'spellbook_superseded_for', 'spellbook_loud_supersedes_for',
+    'client_chat_lines_for', 'client_removals_keeping_buttons_for', 'client_placing_learns_for',
+    'client_placing_supersedes_for', 'client_spell_rank_for',
+    'client_spell_row_restored',
+    'spellbook_client_notable',
     'spellbook_cues_in_last_buy', 'spellbook_last_buy_cued',
     'spellbook_silent_buys', 'spellbook_multi_announced_buys',
     'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost', 'spell_damage_done', 'melee_damage_done',
     'who_count', 'who_class', 'player_name', 'name_lookup', 'loot_count', 'loot_entry', 'loot_received',
     'loot_gold', 'loot_bloodforged', 'loot_required_level', 'loot_item_level', 'loot_base_entry', 'loot_item_armor',
-    'carried_item_level', 'carried_item_required_level',
+    'carried_item_level', 'carried_item_required_level', 'carried_item_armor', 'carried_item_scaling_level',
     'nearby_gameobject_count', 'nearby_gameobject_quest_active', 'nearby_gameobject_state', 'nearby_creature_count',
     'carried_money',
     'channel_object_entry',
@@ -99,11 +104,14 @@ METRICS = {
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
     'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
-    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_attack_power', 'pet_run_speed_rate',
+    'equipped_item',
+    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_max_health', 'pet_health', 'pet_attack_power',
+    'pet_run_speed_rate',
     'distance', 'spell_proc_count', 'spell_proc_chance', 'aura_proc_rate', 'temporary_spell_replacement',
     'spell_family_flags',
     'creature_loot_quality_rate', 'equipped_gear_loot_rate',
-    'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_contains',
+    'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_u32',
+    'server_packet_float', 'server_packet_contains',
     'known_entry_rank',
     'pet_autocast_enabled', 'combo_points', 'game_mode_mask', 'owned_creature_spell_proc_count',
     'player_class', 'cached_class', 'at_login_flag', 'wildcard_starter_spells_known', 'action_bar_unknown_spells',
@@ -129,7 +137,9 @@ PLAYER_STAT_METRICS = {
     'aoe_damage_taken', 'reputation_gain', 'spell_immune', 'spell_effect_immune', 'melee_attack_count',
     'spell_damage_count', 'spell_damage_total', 'spell_uses_armor',
     'spell_heal_count', 'spell_heal_total', 'spell_effective_heal_total',
-    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_aura_duration_ms', 'pet_max_health', 'pet_attack_power',
+    'equipped_item',
+    'pet_aura_amount', 'pet_aura_amplitude_ms', 'pet_aura_duration_ms', 'pet_max_health', 'pet_health',
+    'pet_attack_power',
     'pet_run_speed_rate',
 }
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
@@ -139,7 +149,7 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'dungeon', 'source', 'opcode', 'from', 'slot', 'achievement', 'title',
                  'type_mask', 'hit_mask', 'spell_type_mask',
                  'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
-                 'row', 'offset', 'skip_strings', 'x', 'y', 'min_required_level', 'max_required_level',
+                 'row', 'offset', 'skip_strings', 'from_end', 'x', 'y', 'min_required_level', 'max_required_level',
                  'flat_coefficient_modifier'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
@@ -214,7 +224,7 @@ ACTIONS = {
     'reward_quest': ({'actor', 'quest'}, {'actor', 'quest', 'choice'}),
     'restore_quest_spells': ({'actor'}, {'actor'}),
     'login_hooks': ({'actor'}, {'actor'}),
-    'relog': ({'actor'}, {'actor'}),
+    'relog': ({'actor'}, {'actor', 'race'}),
     'talent': ({'actor', 'talent', 'rank'}, {'actor', 'talent', 'rank'}),
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
@@ -275,12 +285,14 @@ def read_json(path):
 
 def validate(scenario):
     keys(scenario, {'schema', 'name', 'players', 'steps'},
-         {'schema', 'name', 'players', 'creatures', 'steps', 'timeout_ms', 'location', 'contract', 'hour'}, 'scenario')
+         {'schema', 'name', 'players', 'creatures', 'steps', 'timeout_ms', 'location', 'contract', 'hour',
+          'creature_scaling'}, 'scenario')
     require(type(scenario['schema']) is int and scenario['schema'] == 1, 'Unsupported scenario schema')
     require(isinstance(scenario['name'], str) and scenario['name'].strip(), 'Scenario needs a name')
     number(scenario.get('timeout_ms', 90000), 'timeout_ms', 1, 600000, True)
     if 'hour' in scenario:
         number(scenario['hour'], 'hour', 0, HOURS_PER_DAY - 1, True)
+    require(type(scenario.get('creature_scaling', False)) is bool, 'creature_scaling must be boolean')
     players = scenario['players']
     creatures = scenario.get('creatures', [])
     require(isinstance(players, list) and 1 <= len(players) <= 8, 'Expected 1..8 players')
@@ -482,6 +494,8 @@ def validate(scenario):
             require(type(step['revived']) is bool, f'{where}: revived must be boolean')
         if action == 'relog':
             require(step['actor'] in player_ids, f'{where}: relog needs a player')
+            if 'race' in step:
+                number(step['race'], f'{where}.race', 1, 255, True)
         if action == 'specialization':
             require(step['actor'] in player_ids, f'{where}: specialization needs a player')
             number(step['id'], f'{where}.id', 1, 0xFFFF, True)
@@ -547,6 +561,9 @@ def validate(scenario):
             require(step['value'] <= step['maximum'], f'{where}: health exceeds fixture maximum')
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
+            if metric == 'equipped_item':
+                require(step['actor'] in player_ids, f'{where}: equipment metric needs a player')
+                number(step.get('slot'), f'{where}.slot', 0, 18, True)
             if metric in {'known_entry_rank', 'owned_creature_spell_proc_count'}:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
                 number(step.get('entry'), f'{where}.entry', 1, 2**31 - 1, True)
@@ -607,7 +624,10 @@ def validate(scenario):
                     'spell_effective_heal_total', 'spell_energize_count', 'spell_energize_total',
                     'spell_proc_count', 'spell_proc_chance', 'aura_proc_rate', 'temporary_spell_replacement',
                     'cast_failure',
-                    'trainer_window_state', 'trainer_window_ability', 'spellbook_superseded_for'}:
+                    'trainer_window_state', 'trainer_window_ability', 'spellbook_superseded_for',
+                    'spellbook_loud_supersedes_for', 'spellbook_client_notable', 'client_chat_lines_for',
+                    'client_removals_keeping_buttons_for', 'client_placing_learns_for',
+                    'client_placing_supersedes_for', 'client_spell_rank_for', 'client_spell_row_restored'}:
                 require('spell' in step, f'{where}: metric needs spell')
             for key in ('pet', 'critical'):
                 if key in step:
@@ -679,7 +699,8 @@ def validate(scenario):
                 number(step['hand'], f'{where}.hand', 0, maximum, True)
             if 'school' in step and metric == 'spell_crit_chance':
                 number(step['school'], f'{where}.school', 0, 6, True)
-            if metric in {'item_count', 'carried_item_level', 'carried_item_required_level'}:
+            if metric in {'item_count', 'carried_item_level', 'carried_item_required_level', 'carried_item_armor',
+                          'carried_item_scaling_level'}:
                 require('item' in step, f'{where}: metric needs item')
             if metric == 'carried_pool_item_count':
                 require('cache' in step, f'{where}: metric needs the cache item it checks against')
@@ -755,16 +776,22 @@ def validate(scenario):
                 require(isinstance(step.get('source'), str) and step['source'].strip() and 'index' in step,
                         f'{where}: metric needs a setting source and index')
                 number(step['index'], f'{where}.index', 0, 2**16 - 1, True)
-            if metric in {'server_packets', 'server_packet_u32', 'server_packet_contains'}:
+            if metric in {'server_packets', 'server_packet_u32', 'server_packet_float', 'server_packet_contains'}:
                 number(step.get('opcode'), f'{where}.opcode', 1, 0xFFFF, True)
             if metric == 'action_button_packed':
                 number(step.get('button'), f'{where}.button', 0, 143, True)
-            if metric == 'server_packet_u32':
+            if metric in {'server_packet_u32', 'server_packet_float'}:
                 number(step.get('index', 0), f'{where}.index', 0, 2**16 - 1, True)
                 number(step.get('offset', 0), f'{where}.offset', 0, 2**16 - 1, True)
                 number(step.get('skip_strings', 0), f'{where}.skip_strings', 0, 32, True)
+            if 'from_end' in step:
+                require(metric == 'server_packet_float' and isinstance(step['from_end'], bool),
+                        f'{where}: from_end is a boolean for server_packet_float')
+                require(not step['from_end'] or (not step.get('offset', 0) and not step.get('skip_strings', 0)),
+                        f'{where}: from_end cannot combine with offset or skip_strings')
             if 'row' in step:
-                require(metric in {'server_packets', 'server_packet_u32', 'server_packet_contains'},
+                require(metric in {'server_packets', 'server_packet_u32', 'server_packet_float',
+                                   'server_packet_contains'},
                         f'{where}: row applies only to captured packet counts, values or text')
                 number(step['row'], f'{where}.row', 0, 2**32 - 1, True)
             if 'quality' in step:
@@ -779,7 +806,7 @@ def validate(scenario):
             if metric in {'knows_spell', 'client_knows_spell', 'client_spellbook_copies', 'has_talent',
                           'talent_points', 'cooldown_ms',
                           'spell_charges',
-                          'action_button', 'action_button_packed', 'item_count',
+                          'action_button', 'action_button_packed', 'persisted_action_button', 'item_count',
                           'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
                           'bank_bag_slots', 'taxi_node', 'in_flight', 'taxi_destination', 'stabled_pet_count',
                           'stable_result', 'pet_rows', 'instance_binds_listed', 'spell_active',
@@ -788,7 +815,7 @@ def validate(scenario):
                           'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',
                           'owned_creature_weapon_damage_min', 'owned_creature_spell_hit_chance',
                           'owned_creature_attackable',
-                          'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_scale',
+                          'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_native_display', 'pet_scale',
                           'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading',
                           'owned_creature_count', 'charm_entry',
                           'charm_aura_stacks', 'controls_self', 'private_instance',
@@ -804,8 +831,13 @@ def validate(scenario):
                           'spellbook_unnotified_buys',
                           'trainer_list_packets', 'trainer_window_rows', 'trainer_window_state',
                           'trainer_window_ability', 'vendor_list_packets', 'vendor_items',
-                          'vendor_price', 'vendor_price_sum', 'spellbook_superseded_packets',
-                          'spellbook_superseded_for',
+                          'vendor_price', 'vendor_price_sum', 'vendor_extended_cost',
+                          'spellbook_superseded_packets',
+                          'spellbook_superseded_for', 'spellbook_loud_supersedes_for', 'client_chat_lines_for',
+                          'client_removals_keeping_buttons_for', 'client_placing_learns_for',
+                          'client_placing_supersedes_for', 'client_spell_rank_for',
+                          'client_spell_row_restored',
+                          'spellbook_client_notable',
                           'spellbook_cues_in_last_buy', 'spellbook_last_buy_cued',
                           'cast_speed_multiplier', 'spell_crit_chance', 'spell_power_cost',
                           'spell_damage_done', 'melee_damage_done',
@@ -813,14 +845,16 @@ def validate(scenario):
                           'loot_count', 'loot_entry', 'loot_required_level', 'loot_item_level', 'loot_received',
                           'quest_rewarded', 'has_achievement',
                           'loot_base_entry', 'loot_item_armor',
-                          'carried_item_level', 'carried_item_required_level',
+                          'carried_item_level', 'carried_item_required_level', 'carried_item_armor',
+                          'carried_item_scaling_level',
                           'has_title',
                           'quest_status', 'quest_takeable', 'quest_objective_count', 'dialog_status',
                           'ball_offer_count', 'ball_offers_quest',
                           'ball_carried_count', 'ball_carried_quest',
                           'ball_turn_in_count', 'ball_turn_in_quest',
                           'temporary_spell_replacement', 'quest_menu_items', 'quest_menu_has',
-                          'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_contains',
+                          'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_float',
+                          'server_packet_contains',
                           'quest_log_sent_level', 'quest_log_sent_xp',
                           'player_class', 'cached_class', 'at_login_flag',
                           'wildcard_starter_spells_known', 'action_bar_unknown_spells',
@@ -828,7 +862,8 @@ def validate(scenario):
                           'wildcard_cards_collected', 'wildcard_roll_cards_set',
                           'wildcard_roll_cards_used', 'wildcard_bonus_pack_progress'} | PLAYER_STAT_METRICS:
                 require(step['actor'] in player_ids, f'{where}: metric needs a player')
-            shape = (metric, step.get('exclude'))
+            snapshot_metric = 'spell_event_count' if metric in {'spell_cast_count', 'spell_proc_count'} else metric
+            shape = (snapshot_metric, step.get('exclude'))
             if 'relative_to' in step:
                 require(snapshots.get(step['relative_to']) == shape, f'{where}: missing or incompatible snapshot')
             if 'ratio_to' in step:

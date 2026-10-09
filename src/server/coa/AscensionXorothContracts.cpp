@@ -526,8 +526,6 @@ class xoroth_scaling : public UnitScript
             value = player->GetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + CR_BLOCK) * .5f;
         if (info->Id == 573066 && index == 0)
             value += State(player).imps.size() * Amount(805916, 2);
-        if (info->Id == 804788 && index == 0)
-            value *= 1 + .2f * Count(player, 804787);
         if (info->Id == 800999 && index == 1)
             value = player->HasAura(302581) ? float(Amount(302581)) : 0;
         if (info->Id == 803334 && index == 1)

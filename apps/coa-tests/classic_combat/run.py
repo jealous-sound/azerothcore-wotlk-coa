@@ -27,6 +27,8 @@ FALLBACKS = {
     "static float ClassicCreatureAvoidanceChance(":
         "[[maybe_unused]] static float ClassicCreatureAvoidanceChance(Unit const*, AuraType)\n{\n    return 0.0f;\n}\n",
 }
+UNSCALED_SHOWN_LEVEL = ("static uint8 ShownCombatLevel(Unit const* unit, Unit const*)\n"
+                        "{\n    return unit->GetLevel();\n}\n")
 
 
 def compile_and_run(code):
@@ -84,8 +86,9 @@ def main():
     enums += re.search(r"^#define CLASSMASK_WAND_USERS .*$", shared, re.M)[0] + "\n"
     enums += method(shared, "constexpr Classes GetLegacyClassForCustomClass(") + "\n"
 
-    methods = "".join(method(unit, signature) + "\n" if signature in unit else fallback
-                      for signature, fallback in FALLBACKS.items())
+    methods = UNSCALED_SHOWN_LEVEL if "static uint8 ShownCombatLevel(" in unit else ""
+    methods += "".join(method(unit, signature) + "\n" if signature in unit else fallback
+                       for signature, fallback in FALLBACKS.items())
     for signature in ("MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(Unit const* victim, WeaponAttackType attType, "
                       "int32 crit_chance", "float Unit::MeleeSpellMissChance(",
                       "float Unit::GetEffectiveResistChance("):
