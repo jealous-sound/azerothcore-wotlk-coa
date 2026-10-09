@@ -75,6 +75,7 @@ void AddAscensionWarcraftRebornRogueScripts();
 void AddAscensionWarcraftRebornPriestScripts();
 void AddAscensionWarcraftRebornShamanScripts();
 void AddAscensionWarcraftRebornMageScripts();
+void AddAscensionWarcraftRebornDruidScripts();
 void AddAscensionTamingScripts();
 void AddAscensionBarnabusWhistleScripts();
 void AddAscensionAchievementConditionScripts();
@@ -642,6 +643,7 @@ void AddCoAScripts()
     AddAscensionWarcraftRebornPriestScripts();
     AddAscensionWarcraftRebornShamanScripts();
     AddAscensionWarcraftRebornMageScripts();
+    AddAscensionWarcraftRebornDruidScripts();
     AddAscensionTamingScripts();
     AddAscensionBarnabusWhistleScripts();
     AddAscensionAchievementConditionScripts();
