@@ -140,6 +140,8 @@ struct npc_ascension_venomancer_summon : public ScriptedAI
         me->SetReactState(REACT_PASSIVE);
         bool stationary = me->GetEntry() == MushroomEntry || me->GetEntry() == BroodTrapEntry;
         me->SetCombatMovement(!stationary);
+        if (me->GetEntry() == MushroomEntry)
+            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         weaponMinimum = std::max(1.0f,player->GetTotalAttackPowerValue(BASE_ATTACK)*.05f);
         weaponMaximum = std::max(2.0f,player->GetTotalAttackPowerValue(BASE_ATTACK)*.075f);
         me->SetBaseWeaponDamage(BASE_ATTACK,MINDAMAGE,weaponMinimum);

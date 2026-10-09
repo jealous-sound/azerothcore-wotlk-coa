@@ -77,10 +77,10 @@ model and model-info dependencies resolve. The mushroom wears the live Venoshroo
 `spells\Druid_Wild_Mushroom_03Hostile.M2`, shipped in the client's patch-N.MPQ.
 No DBC or client archive edit is needed.
 
-Primary Mycelial Ring grows twelve regular mushrooms at random points inside its 8 yd ring and keeps its
-ten-second field. The stale child says eight mushrooms plus one large mushroom; that is not used for the
-active layout. Large-mushroom data is retained only for a legacy explicit caller. Active Coil is 707234; obsolete summon identity
-712357 routes to its mushroom behavior instead of reintroducing the unrelated archived channel.
+Primary Mycelial Ring follows its live tooltip: eight mushrooms on its 8 yd circle and four Big Mushrooms
+(503925) in the middle, with its ten-second field. Mushrooms are not attackable. Active Coil is 707234;
+obsolete summon identity 712357 routes to its mushroom behavior instead of reintroducing the unrelated
+archived channel.
 
 Cunning uses existing 800389 for damage/extra Sting stacks instead of missing 804549. Its raw visual
 values are unsuitable: 25622 resolves to BloodElfFemale and 29216 is absent. Serpent Lord, Spider Lord,

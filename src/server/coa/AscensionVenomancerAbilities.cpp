@@ -347,8 +347,10 @@ class spell_ascension_venomancer_ability : public SpellScript
         }
         if (id == 681056)
         {
-            for (uint32 n = 0; n < 12; ++n)
-                Mushroom(player,player->GetRandomPoint(*player,Radius(681056)));
+            for (uint32 n = 0; n < 8; ++n)
+                Mushroom(player,player->GetNearPosition(Radius(681056),n * .78539816f));
+            for (uint32 n = 0; n < 4; ++n)
+                Mushroom(player,player->GetNearPosition(1,n * 1.5707963f),.25f,true);
             player->CastSpell(player->GetPositionX(),player->GetPositionY(),player->GetPositionZ(),681291,true);
         }
         if (id == 806217 && GetExplTargetDest())
