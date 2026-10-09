@@ -151,6 +151,8 @@ struct WorldSession
     Player* player = nullptr;
     std::string response;
     StoredOutfits persistedAtResponse;
+    std::map<std::string, std::vector<uint32>> outfitCollection;
+    uint32 outfitCollectionPackets = 0;
     AsyncCallbackProcessor<TransactionCallback> callbacks;
 
     Player* GetPlayer() const { return player; }
@@ -162,6 +164,22 @@ struct WorldSession
 
     void SendPacket(WorldPacket const* packet)
     {
+        if (packet->GetOpcode() == SMSG_APPEARANCE_OUTFIT_INFO)
+        {
+            outfitCollection.clear();
+            std::size_t index = 0;
+            uint32 const count = std::get<uint32>(packet->fields.at(index++));
+            for (uint32 i = 0; i < count; ++i)
+            {
+                auto const name = std::get<std::string>(packet->fields.at(index++));
+                uint32 const appearances = std::get<uint32>(packet->fields.at(index++));
+                auto& outfit = outfitCollection[name];
+                for (uint32 j = 0; j < appearances; ++j)
+                    outfit.push_back(std::get<uint32>(packet->fields.at(index++)));
+            }
+            ++outfitCollectionPackets;
+            return;
+        }
         response = std::get<std::string>(packet->fields.front());
         persistedAtResponse = CharacterDatabase.persisted;
     }
@@ -230,6 +248,7 @@ struct CollectionService
     }
 
     // ACTUAL_SEND_RESULT
+    // ACTUAL_SEND_COLLECTION
     // ACTUAL_VALID_NAME
     // ACTUAL_SAVE
     // ACTUAL_DELETE
@@ -404,6 +423,7 @@ int main()
     CharacterDatabase.CompleteNext();
     processCallbacks();
     Require(service.state->Outfits.at(name) == std::vector<uint32>{99}, "the next queued save recovers after commit failure");
+    Require(!player.session.outfitCollectionPackets, "ordinary outfit commits use their acknowledgement without a full resync");
 
     player.session.response.clear();
     save("Logged out", {42});
@@ -428,11 +448,19 @@ int main()
     save("Relogged", {42});
     oldState = service.state;
     service.state = NewState();
+    service.state->Outfits["Unchanged"] = {99};
+    CharacterDatabase.persisted[{1, "Unchanged"}] = "99";
+    uint32 collectionsBefore = player.session.outfitCollectionPackets;
     CharacterDatabase.CompleteNext();
     processCallbacks();
-    Require(player.session.response.empty() && !service.state->Outfits.contains("Relogged") &&
+    Require(player.session.response.empty() && service.state->Outfits.contains("Relogged") &&
+            service.state->Outfits.at("Relogged") == std::vector<uint32>{42} &&
             !oldState->Outfits.contains("Relogged"),
-        "a stale completion cannot update either state after the same character relogs");
+        "a committed save updates the reconnected cache without acknowledging the old session");
+    Require(player.session.outfitCollectionPackets == collectionsBefore + 1 &&
+            player.session.outfitCollection == service.state->Outfits &&
+            service.state->Outfits.at("Unchanged") == std::vector<uint32>{99},
+        "the reconnected client receives the committed save without losing unrelated outfits");
 
     save(name, {42});
     CharacterDatabase.CompleteNext();
@@ -441,11 +469,43 @@ int main()
     remove();
     oldState = service.state;
     service.state = NewState();
-    service.state->Outfits[name] = {99};
+    service.state->Outfits[name] = {42};
+    service.state->Outfits["Unchanged"] = {99};
+    collectionsBefore = player.session.outfitCollectionPackets;
     CharacterDatabase.CompleteNext();
     processCallbacks();
-    Require(player.session.response.empty() && service.state->Outfits.at(name) == std::vector<uint32>{99} &&
-            oldState->Outfits.contains(name), "a stale delete callback cannot erase a relogged collection");
+    Require(player.session.response.empty() && !service.state->Outfits.contains(name) &&
+            oldState->Outfits.contains(name),
+        "a committed delete updates the reconnected cache without acknowledging the old session");
+    Require(player.session.outfitCollectionPackets == collectionsBefore + 1 &&
+            player.session.outfitCollection == service.state->Outfits &&
+            service.state->Outfits.at("Unchanged") == std::vector<uint32>{99},
+        "the reconnected client receives the committed deletion without losing unrelated outfits");
+
+    for (bool deletion : {false, true})
+    {
+        service.state = NewState();
+        service.state->Outfits[name] = {42};
+        CharacterDatabase.persisted[key] = "42";
+        player.session.response.clear();
+        if (deletion)
+            remove();
+        else
+            save(name, {99});
+        oldState = service.state;
+        service.state = NewState();
+        service.state->Outfits[name] = {42};
+        collectionsBefore = player.session.outfitCollectionPackets;
+        CharacterDatabase.fail = true;
+        CharacterDatabase.CompleteNext();
+        CharacterDatabase.fail = false;
+        processCallbacks();
+        Require(player.session.response.empty() && player.session.outfitCollectionPackets == collectionsBefore &&
+                service.state->Outfits.at(name) == std::vector<uint32>{42} &&
+                oldState->Outfits.at(name) == std::vector<uint32>{42} && CharacterDatabase.persisted.at(key) == "42",
+            "a failed old-session commit leaves the reconnected cache and database unchanged without resync or acknowledgement");
+        Require(!service.HasPendingOutfitCommit(player.GetGUID()), "a failed reconnect commit releases later writes");
+    }
     service.state = NewState();
     service.state->Outfits[name] = {42};
     CharacterDatabase.persisted[key] = "42";

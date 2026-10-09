@@ -17,7 +17,7 @@ def main():
     harness = (HERE / 'harness.cpp').read_text(encoding='utf-8')
     constants = ('APPEARANCE_CATEGORY_COUNT', 'MAX_APPEARANCE_OUTFIT_NAME_BYTES',
                  'MAX_APPEARANCE_OUTFITS', 'SMSG_SAVE_APPEARANCE_OUTFIT_RESULT',
-                 'SMSG_DELETE_APPEARANCE_OUTFIT_RESULT', 'CMSG_SAVE_APPEARANCE_OUTFIT',
+                 'SMSG_DELETE_APPEARANCE_OUTFIT_RESULT', 'SMSG_APPEARANCE_OUTFIT_INFO', 'CMSG_SAVE_APPEARANCE_OUTFIT',
                  'CMSG_DELETE_APPEARANCE_OUTFIT', 'MAX_EXTENSION_REPLIES_PER_UPDATE')
     harness = harness.replace('// ACTUAL_CONSTANTS', '\n'.join(
         re.search(r'^constexpr [\w:]+ ' + name + r' = [^;]+;$', source, re.M)[0]
@@ -32,6 +32,7 @@ def main():
     harness = harness.replace('// ACTUAL_COLLECTION_STATE', method(source, 'struct PlayerCollectionState') + ';')
     for marker, signature in (
         ('SEND_RESULT', 'static void SendOutfitResult('),
+        ('SEND_COLLECTION', 'void SendOutfitCollection('),
         ('VALID_NAME', 'static bool ValidOutfitName('),
         ('SAVE', 'void HandleSaveOutfit('),
         ('DELETE', 'void HandleDeleteOutfit('),

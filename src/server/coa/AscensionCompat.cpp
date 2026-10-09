@@ -6610,13 +6610,17 @@ private:
         {
             _pendingOutfitCommits.erase(guid.GetCounter());
             Player* current = ObjectAccessor::FindConnectedPlayer(guid);
-            if (!current || GetState(current) != state)
+            std::shared_ptr<PlayerCollectionState> currentState = current ? GetState(current) : nullptr;
+            if (!currentState)
                 return;
 
             if (success)
-                state->Outfits[name] = std::move(appearances);
-            SendOutfitResult(current, SMSG_SAVE_APPEARANCE_OUTFIT_RESULT,
-                success ? "SAVE_APPEARANCE_OUTFIT_OK" : "SAVE_APPEARANCE_OUTFIT_UNKNOWN");
+                currentState->Outfits[name] = std::move(appearances);
+            if (currentState == state)
+                SendOutfitResult(current, SMSG_SAVE_APPEARANCE_OUTFIT_RESULT,
+                    success ? "SAVE_APPEARANCE_OUTFIT_OK" : "SAVE_APPEARANCE_OUTFIT_UNKNOWN");
+            else if (success)
+                SendOutfitCollection(current, *currentState);
         });
   }
 
@@ -6648,13 +6652,17 @@ private:
         {
             _pendingOutfitCommits.erase(guid.GetCounter());
             Player* current = ObjectAccessor::FindConnectedPlayer(guid);
-            if (!current || GetState(current) != state)
+            std::shared_ptr<PlayerCollectionState> currentState = current ? GetState(current) : nullptr;
+            if (!currentState)
                 return;
 
             if (success)
-                state->Outfits.erase(name);
-            SendOutfitResult(current, SMSG_DELETE_APPEARANCE_OUTFIT_RESULT,
-                success ? "DELETE_APPEARANCE_OUTFIT_OK" : "DELETE_APPEARANCE_OUTFIT_UNKNOWN");
+                currentState->Outfits.erase(name);
+            if (currentState == state)
+                SendOutfitResult(current, SMSG_DELETE_APPEARANCE_OUTFIT_RESULT,
+                    success ? "DELETE_APPEARANCE_OUTFIT_OK" : "DELETE_APPEARANCE_OUTFIT_UNKNOWN");
+            else if (success)
+                SendOutfitCollection(current, *currentState);
         });
   }
 

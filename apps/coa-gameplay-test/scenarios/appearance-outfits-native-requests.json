@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "name": "Native appearance outfit requests save, reload and delete outfits",
-  "contract": "C_AppearanceOutfit.SaveOutfit sends CMSG_SAVE_APPEARANCE_OUTFIT (0x069E): a C-string name, then u32 n and n appearance ids indexed by category. DeleteOutfit sends CMSG_DELETE_APPEARANCE_OUTFIT (0x06A0) with the name. The DLL keeps the outfit only when SMSG 0x069F / 0x06A1 carries SAVE_/DELETE_APPEARANCE_OUTFIT_OK and reads the list from SMSG_APPEARANCE_OUTFIT_INFO (0x069D) at login. Expected: a valid save is accepted and stored per character, so the login list names it; an outfit naming an appearance the character has not collected is refused; replacing an outfit persists its new category list through a real character reload; deleting removes it durably, and deleting it again is refused. Saves and deletes must commit before success is acknowledged (issue #240).",
-  "timeout_ms": 30000,
+  "contract": "C_AppearanceOutfit.SaveOutfit sends CMSG_SAVE_APPEARANCE_OUTFIT (0x069E): a C-string name, then u32 n and n appearance ids indexed by category. DeleteOutfit sends CMSG_DELETE_APPEARANCE_OUTFIT (0x06A0) with the name. The DLL keeps the outfit only when SMSG 0x069F / 0x06A1 carries SAVE_/DELETE_APPEARANCE_OUTFIT_OK and reads the list from SMSG_APPEARANCE_OUTFIT_INFO (0x069D) at login. Expected: a valid save is accepted and stored per character, so the login list names it; an outfit naming an appearance the character has not collected is refused; replacing an outfit persists its new category list through a real character reload; deleting removes it durably, and deleting it again is refused. Saves and deletes must commit before success is acknowledged (issue #240). Success responses await asynchronous database commits; their bounded wait allows for external database latency while the simulated game clock advances.",
+  "timeout_ms": 60000,
   "players": [
     { "id": "wearer", "race": 1, "class": 1, "level": 10 }
   ],
@@ -13,7 +13,7 @@
     },
     {
       "action": "assert", "label": "The save is accepted", "actor": "wearer", "metric": "server_packet_contains",
-      "opcode": 1695, "row": 1163280723, "text": "SAVE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 1000
+      "opcode": 1695, "row": 1163280723, "text": "SAVE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 10000
     },
     {
       "action": "client_packet", "label": "Save an outfit with an uncollected appearance", "actor": "wearer",
@@ -44,7 +44,7 @@
     {
       "action": "assert", "label": "The replacement sends its own completion response", "actor": "wearer",
       "metric": "server_packets", "opcode": 1695, "row": 1163280723, "relative_to": "save_responses",
-      "equals": 1, "within_ms": 1000
+      "equals": 1, "within_ms": 10000
     },
     {
       "action": "assert", "label": "The replacement is accepted", "actor": "wearer",
@@ -61,7 +61,7 @@
     },
     {
       "action": "assert", "label": "The delete is accepted", "actor": "wearer", "metric": "server_packet_contains",
-      "opcode": 1697, "text": "DELETE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 1000
+      "opcode": 1697, "text": "DELETE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 10000
     },
     { "action": "relog", "label": "Reload after deleting the outfit", "actor": "wearer" },
     {
