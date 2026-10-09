@@ -1,5 +1,6 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 
+#include "AscensionRulesets.h"
 #include "Config.h"
 #include "LocalLevelScaling.h"
 #include "Map.h"
@@ -54,6 +55,32 @@ void ApplyRuleset(Player* player, uint32 selectionId)
     if (player->IsInWorld() && RulesetBlocksLevelScaling(player) != blockedBefore &&
         !LocalLevelScaling::NotifyScalingChanged(player))
         player->RefreshQuestLogQueries();
+}
+
+uint32 SelectionSpell(AscensionRulesets::Ruleset ruleset)
+{
+    switch (ruleset)
+    {
+        case AscensionRulesets::Ruleset::HighRisk:
+            return SPELL_SELECT_HIGH_RISK;
+        case AscensionRulesets::Ruleset::PvE:
+            return SPELL_SELECT_PVE;
+        default:
+            return SPELL_SELECT_WAR_MODE;
+    }
+}
+
+uint32 RulesetAura(AscensionRulesets::Ruleset ruleset)
+{
+    switch (ruleset)
+    {
+        case AscensionRulesets::Ruleset::HighRisk:
+            return SPELL_HIGH_RISK;
+        case AscensionRulesets::Ruleset::PvE:
+            return SPELL_PVE;
+        default:
+            return SPELL_WAR_MODE;
+    }
 }
 
 class spell_ascension_ruleset_select : public SpellScript
@@ -148,6 +175,16 @@ public:
             ApplyRuleset(player, SPELL_SELECT_PVE);
     }
 };
+}
+
+void AscensionRulesets::Apply(Player* player, Ruleset ruleset)
+{
+    ApplyRuleset(player, SelectionSpell(ruleset));
+}
+
+bool AscensionRulesets::Has(Player* player, Ruleset ruleset)
+{
+    return player->HasAura(RulesetAura(ruleset));
 }
 
 void AddSC_AscensionRulesets()

@@ -41,7 +41,8 @@ Then, in this order:
 5. Upgraded ranks above level 1 are removed. The character goes to level 1 through
    `Player::GiveLevel`, whose CoA progression pass removes the class abilities that level 1 does not
    allow. The rank left below a removed one is learned again, so it can be cast.
-6. Temporary buffs and debuffs are removed. Equipment the character can no longer use goes to the
+6. Temporary buffs and debuffs are removed, and the ruleset becomes War Mode (High-Risk and PvE Mode
+   are removed). Equipment the character can no longer use goes to the
    bags, or to the mailbox if they are full. This includes a weapon or shield whose proficiency came
    from a forgotten talent.
 7. The rewards (`CoAPrestige.Rewards`) are added to the bags, or mailed if they do not fit.
@@ -56,6 +57,8 @@ While Prestige Mode is active:
   `AddAscensionSpecializationSwitchGuard`.
 - The Prestige Challenge aura multiplies every experience gain by
   `100% + CoAPrestige.ExperienceBonusPercent`.
+- Reaching level 15 replaces War Mode with PvE Mode. From there the player chooses High-Risk or War
+  Mode again in a rested area.
 
 Reaching the required level again completes the cycle. It removes the aura and unlocks the
 specialization.
