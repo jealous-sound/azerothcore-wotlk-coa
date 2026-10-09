@@ -184,6 +184,7 @@ constexpr uint16 SMSG_PATCH_ITEM_DISPLAY_INFO = 0x096B;
 constexpr uint16 SMSG_PATCH_CHARACTER_ADVANCEMENT = 0x064A;
 constexpr uint16 SMSG_PATCH_SPELL = 0x092A;
 constexpr uint16 SMSG_PATCH_SUPER_TRACK = 0x06BE;
+constexpr uint16 SMSG_PATCH_SKILL_LINE_ABILITY = 0x0934;
 constexpr uint16 SMSG_PATCH_SPELL_SHAPESHIFT_FORM = 0x0949;
 constexpr uint16 SMSG_PATCH_CREATURE_MODEL_DATA = 0x0974;
 constexpr uint32 CUSTOM_DISPLAY_ID_FALLBACK_MIN = 652000;
@@ -3626,9 +3627,11 @@ public:
     PreparedPatchRows const &rows = GetPreparedPatchRows();
     LOG_INFO("coa",
              "Prepared {} CreatureModelData, {} CreatureDisplayInfo, {} ItemDisplayInfo, {} Item, "
-             "{} Spell, {} SuperTrack and {} SpellShapeshiftForm patch rows for the client stream",
+             "{} Spell, {} SuperTrack, {} SkillLineAbility and {} SpellShapeshiftForm patch rows "
+             "for the client stream",
              rows.CreatureModels.size(), rows.CreatureDisplayIds.size(), rows.ItemDisplayInfos.size(),
-             rows.Items.size(), rows.Spells.size(), rows.SuperTracks.size(), rows.ShapeshiftForms.size());
+             rows.Items.size(), rows.Spells.size(), rows.SuperTracks.size(), rows.SkillLineAbilities.size(),
+             rows.ShapeshiftForms.size());
     IndexClientSpells();
     IndexClientSpellRanks();
     IndexAdvancementEntryIds();
@@ -3858,15 +3861,19 @@ public:
     for (SuperTrackPatchRow const &row : rows.SuperTracks)
       bytes += SendSuperTrackRow(player, row);
 
+    for (SkillLineAbilityPatchRow const& row : rows.SkillLineAbilities)
+        bytes += SendSkillLineAbilityRow(player, row);
+
     for (ShapeshiftFormPatchRow const &row : rows.ShapeshiftForms)
       bytes += SendShapeshiftFormRow(player, row);
 
     LOG_INFO("coa",
              "Streamed {} CreatureModelData, {} CreatureDisplayInfo, {} ItemDisplayInfo, {} of {} Item, "
-             "{} Spell, {} SuperTrack and {} SpellShapeshiftForm patch rows ({} bytes) to {} in {} ms",
+             "{} Spell, {} SuperTrack, {} SkillLineAbility and {} SpellShapeshiftForm patch rows "
+             "({} bytes) to {} in {} ms",
              rows.CreatureModels.size(), sent, rows.ItemDisplayInfos.size(), sentItems.Rows,
-             rows.Items.size(), sentSpells, rows.SuperTracks.size(), rows.ShapeshiftForms.size(), bytes,
-             player->GetName(), GetMSTimeDiffToNow(startTime));
+             rows.Items.size(), sentSpells, rows.SuperTracks.size(), rows.SkillLineAbilities.size(),
+             rows.ShapeshiftForms.size(), bytes, player->GetName(), GetMSTimeDiffToNow(startTime));
   }
 
 private:
@@ -3887,6 +3894,8 @@ private:
 
   using ItemPatchRow = std::array<uint32, 8>;
   using SuperTrackPatchRow = std::array<uint32, 8>;
+    static constexpr uint32 SKILL_LINE_ABILITY_DBC_FIELD_COUNT = 14;
+    using SkillLineAbilityPatchRow = std::array<uint32, SKILL_LINE_ABILITY_DBC_FIELD_COUNT>;
 
   static constexpr uint32 SHAPESHIFT_FORM_DBC_FIELD_COUNT = 35;
   static constexpr uint32 SHAPESHIFT_FORM_NAME_FIELD = 2;
@@ -3961,6 +3970,7 @@ private:
     std::vector<SpellPatchRow> Spells;
     std::unordered_map<uint32, std::size_t> SpellRowIndexById;
     std::vector<SuperTrackPatchRow> SuperTracks;
+    std::vector<SkillLineAbilityPatchRow> SkillLineAbilities;
     std::vector<ShapeshiftFormPatchRow> ShapeshiftForms;
     std::vector<CreatureModelPatchRow> CreatureModels;
   };
@@ -4340,6 +4350,62 @@ private:
     return SendRowPacket(player, packet);
   }
 
+    static std::size_t SendSkillLineAbilityRow(Player* player, SkillLineAbilityPatchRow const& row)
+    {
+        WorldPacket packet(SMSG_PATCH_SKILL_LINE_ABILITY, row.size() * sizeof(uint32));
+        for (uint32 value : row)
+            packet << value;
+        return SendRowPacket(player, packet);
+    }
+
+    static std::vector<SkillLineAbilityPatchRow> LoadSkillLineAbilityPatchRows()
+    {
+        std::vector<SkillLineAbilityPatchRow> rows;
+        PreparedQueryResult result = WorldDatabase.Query(
+            WorldDatabase.GetPreparedStatement(WORLD_SEL_CLIENT_SKILL_LINE_ABILITIES));
+        if (!result)
+            return rows;
+
+        std::map<uint32, uint32> skillLines;
+        do
+        {
+            Field const* fields = result->Fetch();
+            uint32 const id = fields[0].Get<uint32>();
+            uint32 const skillLine = fields[1].Get<uint32>();
+            if (sSkillLineStore.LookupEntry(skillLine))
+                skillLines[id] = skillLine;
+            else
+                LOG_ERROR("coa", "coa_client_skill_line_ability {} has unknown SkillLine {}", id, skillLine);
+        } while (result->NextRow());
+
+        ClientDBC abilities;
+        std::filesystem::path const serverDbc =
+            std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "SkillLineAbility.dbc";
+        if (!abilities.Load(serverDbc.string(), SKILL_LINE_ABILITY_DBC_FIELD_COUNT))
+        {
+            LOG_ERROR("coa", "Cannot read {}; skill line ability patches are not streamed", serverDbc.generic_string());
+            return rows;
+        }
+
+        for (uint32 index = 0; index < abilities.GetRecordCount(); ++index)
+        {
+            ClientDBC::Record const record = abilities.GetRecord(index);
+            auto const skillLine = skillLines.find(record.GetUInt32(0));
+            if (skillLine == skillLines.end())
+                continue;
+
+            SkillLineAbilityPatchRow& row = rows.emplace_back();
+            for (uint32 field = 0; field < row.size(); ++field)
+                row[field] = record.GetUInt32(field);
+            row[1] = skillLine->second;
+            skillLines.erase(skillLine);
+        }
+
+        for (auto const& [id, skillLine] : skillLines)
+            LOG_ERROR("coa", "coa_client_skill_line_ability {} has no SkillLineAbility.dbc row", id);
+        return rows;
+    }
+
   std::size_t SendShapeshiftFormRow(Player *player,
                                    ShapeshiftFormPatchRow const &row) const {
     WorldPacket packet(SMSG_PATCH_SPELL_SHAPESHIFT_FORM,
@@ -4436,6 +4502,7 @@ private:
       for (std::size_t index = 0; index < _rows.Spells.size(); ++index)
         _rows.SpellRowIndexById.emplace(_rows.Spells[index].Values[0], index);
       _rows.SuperTracks = LoadSuperTrackPatchRows();
+      _rows.SkillLineAbilities = LoadSkillLineAbilityPatchRows();
       _rows.ShapeshiftForms = LoadShapeshiftFormPatchRows();
       _rows.CreatureModels = BuildCreatureModelPatchRows();
       _rowsPrepared = true;
