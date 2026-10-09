@@ -108,6 +108,7 @@ public:
                             }
                             else
                             {
+                                DrivePossessed(possessedTarget);
                                 possessionContext.Repeat(1s);
                             }
                         }
@@ -130,6 +131,39 @@ public:
 
             _scheduler.Update(diff,
                 std::bind(&ScriptedAI::DoMeleeAttackIfReady, this));
+        }
+
+        // The charm hands the player to the Baroness, but nothing in the core moves a player a
+        // creature charms, so they only stood there. Turn them on the nearest of their own group.
+        void DrivePossessed(Player* possessed)
+        {
+            if (!possessed->IsAlive() || possessed->HasUnitState(UNIT_STATE_CASTING))
+                return;
+
+            Unit* victim = possessed->GetVictim();
+            if (victim && victim->IsAlive() && possessed->IsValidAttackTarget(victim))
+                return;
+
+            Player* nearest = nullptr;
+            float nearestDist = 40.0f;
+            for (auto const& ref : me->GetMap()->GetPlayers())
+            {
+                Player* player = ref.GetSource();
+                if (!player || player == possessed || !player->IsAlive() || !possessed->IsValidAttackTarget(player))
+                    continue;
+                float const dist = possessed->GetDistance(player);
+                if (dist < nearestDist)
+                {
+                    nearest = player;
+                    nearestDist = dist;
+                }
+            }
+
+            if (nearest)
+            {
+                possessed->Attack(nearest, true);
+                possessed->GetMotionMaster()->MoveChase(nearest);
+            }
         }
 
     private:
