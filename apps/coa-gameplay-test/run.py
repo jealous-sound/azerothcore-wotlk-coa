@@ -197,7 +197,8 @@ ACTIONS = {
     'gossip_hello': ({'actor'}, {'actor', 'target'}),
     'banker_activate': ({'actor'}, {'actor', 'target', 'owner', 'entry'}),
     'personal_bank_open': ({'actor', 'entry'}, {'actor', 'entry'}),
-    'personal_bank_swap': ({'actor', 'entry', 'direction'}, {'actor', 'entry', 'direction', 'item', 'slot'}),
+    'personal_bank_swap': ({'actor', 'entry', 'direction'},
+                           {'actor', 'entry', 'direction', 'item', 'slot', 'count', 'inventory_slot'}),
     'binder_activate': ({'actor', 'target'}, {'actor', 'target'}),
     'destroy_item': ({'actor', 'item'}, {'actor', 'item'}),
     'start_challenge': ({'actor', 'challenge', 'level'}, {'actor', 'challenge', 'level'}),
@@ -515,6 +516,15 @@ def validate(scenario):
         if action == 'mapless_loot_hook':
             require(step['actor'] in player_ids, f'{where}: mapless loot needs a player')
             require(step.get('store') in {'mail', 'gameobject'}, f'{where}: unsupported mapless loot store')
+        if action == 'personal_bank_swap':
+            require(step['direction'] in {'deposit', 'withdraw'}, f'{where}: invalid bank direction')
+            number(step.get('slot', 0), f'{where}.slot', 0, 97, True)
+            number(step.get('count', 0), f'{where}.count', 0, 2**31 - 1, True)
+            if step['direction'] == 'deposit':
+                number(step.get('item'), f'{where}.item', 1, 2**32 - 1, True)
+            if 'inventory_slot' in step:
+                require(step['direction'] == 'withdraw', f'{where}: inventory_slot needs withdrawal')
+                number(step['inventory_slot'], f'{where}.inventory_slot', 23, 38, True)
         if action in {'summon_gameobject', 'loot_gameobject'}:
             require(step['actor'] in player_ids, f'{where}: {action} needs a player')
             number(step['entry'], f'{where}.entry', 1, 2**32 - 1, True)

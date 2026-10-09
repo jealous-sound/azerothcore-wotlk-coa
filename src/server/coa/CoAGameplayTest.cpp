@@ -4563,6 +4563,7 @@ private:
             else
             {
                 uint8 const bankSlot = uint8(step.get<uint32>("slot", 0));
+                int32 const count = step.get<int32>("count", 0);
                 std::string const direction = step.get<std::string>("direction");
                 Require(direction == "deposit" || direction == "withdraw",
                         "Personal bank swap direction must be deposit or withdraw");
@@ -4573,10 +4574,13 @@ private:
                     Item* item = player->GetItemByEntry(step.get<uint32>("item"));
                     Require(item != nullptr, "The player carries no item of that entry");
                     packet << uint32(item->GetEntry()) << uint8(0) << uint8(item->GetBagSlot())
-                           << uint8(item->GetSlot()) << uint8(0) << int32(0);
+                           << uint8(item->GetSlot()) << uint8(0) << count;
                 }
+                else if (auto inventorySlot = step.get_optional<uint8>("inventory_slot"))
+                    packet << uint32(0) << uint8(0) << uint8(INVENTORY_SLOT_BAG_0)
+                           << *inventorySlot << uint8(1) << count;
                 else
-                    packet << uint32(0) << uint8(1) << int32(0) << uint8(0) << int32(0);
+                    packet << uint32(0) << uint8(1) << int32(0) << uint8(0) << count;
                 sScriptMgr->CanPacketReceive(player->GetSession(), packet);
             }
             record.put("result", "submitted; verify the answer with assertions");
