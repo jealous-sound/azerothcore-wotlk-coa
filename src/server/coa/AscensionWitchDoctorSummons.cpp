@@ -226,6 +226,9 @@ class npc_ascension_witch_doctor : public ScriptedAI
         me->SetOwnerGUID(_owner);
         me->SetCreatorGUID(_owner);
         me->SetFaction(player->GetFaction());
+        me->m_ControlledByPlayer = true;
+        me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+        me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
         me->SetLevel(player->GetLevel());
         me->SetMaxHealth(std::max(5u, uint32(player->GetLevel()) * 10));
         me->SetHealth(me->GetMaxHealth());
@@ -290,6 +293,8 @@ class npc_ascension_witch_doctor : public ScriptedAI
                 me->SetFloatValue(UNIT_FIELD_MAXDAMAGE, target->GetFloatValue(UNIT_FIELD_MAXDAMAGE));
                 me->SetCombatMovement(true);
                 AttackStart(target);
+                if (me->GetVictim() == target)
+                    me->EngageWithTarget(target);
             }
     }
     ObjectGuid GetGUID(int32 key) const override { return key == DataTarget ? _target : _owner; }
@@ -380,6 +385,7 @@ class npc_ascension_witch_doctor : public ScriptedAI
         }
         if (me->GetEntry() == NpcHauntVisage)
             return;
+        me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
         _age += diff;
         if (me->GetEntry() == NpcFool)
         {
