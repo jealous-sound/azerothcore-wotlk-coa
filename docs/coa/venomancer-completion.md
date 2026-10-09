@@ -71,16 +71,15 @@ window expiry. These geometry decisions require validation against actual maps a
 
 ## Native assets and legacy identities
 
-Five guarded definitions: Fungarian 45896/display 49116 (Elemental); Mushroom 506018/display 26981; Brood Trap
+Five guarded definitions: Fungarian 45896/display 49116 (Elemental); Mushroom 506018/display 128263; Brood Trap
 52121/display 23058; Spiderling 999298/display 955; Scarab 999299/display 10005. Their native display,
-model and model-info dependencies resolve. The mushroom display is an invisible carrier; native
-Putrid Mushroom spell 31690 supplies visual 7863, state kit 6739, effect 3060 and
-`world\goober\g_sporemushroom.mdx`. It is not a visible mushroom solely because of display 26981.
-No DBC or client archive edit is needed; actual rendering/scale is unverified.
+model and model-info dependencies resolve. The mushroom wears the live Venoshroom display 128263,
+`spells\Druid_Wild_Mushroom_03Hostile.M2`, shipped in the client's patch-N.MPQ.
+No DBC or client archive edit is needed.
 
-Primary Mycelial Ring uses twelve regular mushrooms and its ten-second field. The stale child says
-eight mushrooms plus one large mushroom; that is not used for the active layout. Large-mushroom
-data is retained only for a legacy explicit caller. Active Coil is 707234; obsolete summon identity
+Primary Mycelial Ring grows twelve regular mushrooms at random points inside its 8 yd ring and keeps its
+ten-second field. The stale child says eight mushrooms plus one large mushroom; that is not used for the
+active layout. Large-mushroom data is retained only for a legacy explicit caller. Active Coil is 707234; obsolete summon identity
 712357 routes to its mushroom behavior instead of reintroducing the unrelated archived channel.
 
 Cunning uses existing 800389 for damage/extra Sting stacks instead of missing 804549. Its raw visual
