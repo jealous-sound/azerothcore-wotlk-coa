@@ -15,25 +15,6 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
-    def test_personal_bank_split_packets(self):
-        for direction in ('deposit', 'withdraw'):
-            scenario = copy.deepcopy(self.scenario)
-            step = {'action': 'personal_bank_swap', 'actor': 'caster', 'entry': 475001,
-                    'direction': direction, 'count': 5}
-            if direction == 'deposit':
-                step['item'] = 2589
-            else:
-                step['inventory_slot'] = 38
-            scenario['steps'].append(step)
-            self.assertIs(run.validate(scenario), scenario)
-            for key, value in (('count', -1), ('count', 2**31), ('count', True), ('slot', 98),
-                               ('inventory_slot', 39), ('direction', 'invalid')):
-                invalid = copy.deepcopy(scenario)
-                invalid['steps'][-1][key] = value
-                with self.subTest(direction=direction, key=key, value=value):
-                    with self.assertRaises(ValueError):
-                        run.validate(invalid)
-
     def test_spell_cast_and_proc_counts_can_share_relative_snapshots(self):
         for measured, captured in (('spell_cast_count', 'spell_proc_count'),
                                    ('spell_proc_count', 'spell_cast_count')):
@@ -138,6 +119,25 @@ class RunnerTests(unittest.TestCase):
             candidate['steps'][0][field] = value
             with self.assertRaises(ValueError):
                 run.validate(candidate)
+
+    def test_personal_bank_split_packets(self):
+        for direction in ('deposit', 'withdraw'):
+            scenario = copy.deepcopy(self.scenario)
+            step = {'action': 'personal_bank_swap', 'actor': 'caster', 'entry': 475001,
+                    'direction': direction, 'count': 5}
+            if direction == 'deposit':
+                step['item'] = 2589
+            else:
+                step['inventory_slot'] = 38
+            scenario['steps'].append(step)
+            self.assertIs(run.validate(scenario), scenario)
+            for key, value in (('count', -1), ('count', 2**31), ('count', True), ('slot', 98),
+                               ('inventory_slot', 39), ('direction', 'invalid')):
+                invalid = copy.deepcopy(scenario)
+                invalid['steps'][-1][key] = value
+                with self.subTest(direction=direction, key=key, value=value):
+                    with self.assertRaises(ValueError):
+                        run.validate(invalid)
 
     def setUp(self):
         self.scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'frostbolt.json')
