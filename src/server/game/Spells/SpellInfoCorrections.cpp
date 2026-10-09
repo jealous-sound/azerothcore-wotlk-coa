@@ -5453,6 +5453,12 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Attributes |= SPELL_ATTR0_ON_NEXT_SWING;
     });
 
+    // CoA: Summon Eye of Immol'thar puts the eyes anywhere up to 30 yards away; keep them close around him.
+    ApplySpellFix({ 2100246 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_10_YARDS);
+    });
+
     for (uint32 i = 0; i < GetSpellInfoStoreSize(); ++i)
     {
         SpellInfo* spellInfo = mSpellInfoMap[i];
