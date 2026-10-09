@@ -23,6 +23,7 @@ void AddAscensionTravelPermitScripts();
 void AddSC_AscensionRulesets();
 void AddSC_AscensionMercenary();
 void AddSC_AscensionHighRisk();
+void AddSC_AscensionCrowsCache();
 void AddSC_AscensionItemScaling();
 void AddSC_AscensionNativeItemScaling();
 void AddSC_AscensionQuestScaling();
@@ -654,6 +655,7 @@ void AddCoAScripts()
     AddSC_AscensionRulesets();
     AddSC_AscensionMercenary();
     AddSC_AscensionHighRisk();
+    AddSC_AscensionCrowsCache();
     AddSC_AscensionItemScaling();
     AddSC_AscensionNativeItemScaling();
     AddSC_AscensionQuestScaling();

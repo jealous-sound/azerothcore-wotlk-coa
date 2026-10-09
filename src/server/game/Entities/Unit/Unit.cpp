@@ -12206,6 +12206,12 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     if (mtype == MOVE_RUN && !IsMounted())
         if (AuraEffect const* hellknight = GetAuraEffect(ASCENSION_SPELL_HELLKNIGHT, EFFECT_0))
             main_speed_mod = std::max(main_speed_mod, -hellknight->GetAmount());
+    if (IsPlayer() && IsMounted() && HasAura(1005000) && (mtype == MOVE_RUN || mtype == MOVE_FLIGHT))
+    {
+        main_speed_mod = 0;
+        stack_bonus = 1.0f;
+        non_stack_bonus = 1.0f;
+    }
     float speed = std::max(non_stack_bonus, stack_bonus);
     if (main_speed_mod)
         AddPct(speed, main_speed_mod);
