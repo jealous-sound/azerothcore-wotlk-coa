@@ -46,6 +46,7 @@ void AddSC_CoADungeonBossKit();
 void AddSC_CoADungeonCompletion();
 void AddSC_CoADungeonSpoils();
 void AddSC_CoADungeonTuning();
+void AddSC_CoAGuardLevel();
 void AddSC_CoADungeonBossSpells();
 void AddSC_AscensionKeepersScrollSteadfast();
 void AddSC_AscensionProfessionSpellAffect();
@@ -662,6 +663,7 @@ void AddCoAScripts()
     AddSC_CoADungeonCompletion();
     AddSC_CoADungeonSpoils();
     AddSC_CoADungeonTuning();
+    AddSC_CoAGuardLevel();
     AddSC_CoADungeonBossSpells();
     AddSC_AscensionKeepersScrollSteadfast();
     AddSC_AscensionProfessionSpellAffect();
