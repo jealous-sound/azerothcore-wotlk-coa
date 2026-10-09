@@ -383,9 +383,10 @@ class npc_ascension_witch_doctor : public ScriptedAI
             me->DespawnOrUnsummon();
             return;
         }
+        if (player->getClass() == CLASS_WITCH_DOCTOR)
+            me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
         if (me->GetEntry() == NpcHauntVisage)
             return;
-        me->SetByteValue(UNIT_FIELD_BYTES_2, 1, player->GetByteValue(UNIT_FIELD_BYTES_2, 1));
         _age += diff;
         if (me->GetEntry() == NpcFool)
         {
