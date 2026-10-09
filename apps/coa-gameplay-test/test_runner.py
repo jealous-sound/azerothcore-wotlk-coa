@@ -15,6 +15,29 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_nearby_creature_count_filters_require_valid_scope_and_ranges(self):
+        for filters in ({}, {'min_level': 16, 'max_level': 17}, {'min_home_distance': 1}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': 'caster',
+                                     'metric': 'nearby_creature_count', 'entry': 2070, 'equals': 2, **filters})
+            with self.subTest(filters=filters):
+                self.assertIs(run.validate(scenario), scenario)
+        for filters in ({'min_level': 0}, {'max_level': 256}, {'min_level': 17, 'max_level': 16},
+                        {'min_level': '16'}, {'min_level': True}, {'max_level': 16.5},
+                        {'min_home_distance': -1}, {'min_home_distance': float('nan')},
+                        {'min_home_distance': float('inf')}, {'min_home_distance': True}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': 'caster',
+                                     'metric': 'nearby_creature_count', 'entry': 2070, 'equals': 2, **filters})
+            with self.subTest(filters=filters), self.assertRaises(ValueError):
+                run.validate(scenario)
+        for field in ('min_level', 'max_level', 'min_home_distance'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': 'caster',
+                                     'metric': 'health', 'min': 1, field: 1})
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                run.validate(scenario)
+
     def test_duel_arbiter_packet_field_requires_a_player(self):
         step = {'action': 'client_packet', 'actor': 'caster', 'opcode': 364,
                 'fields': [{'duel_arbiter': 'caster'}], 'consumed': False}

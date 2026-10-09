@@ -2632,8 +2632,17 @@ private:
         {
             std::list<Creature*> creatures;
             player->GetCreatureListWithEntryInGrid(creatures, step.get<uint32>("entry"), 60.0f);
+            uint32 const minLevel = step.get<uint32>("min_level", 1);
+            uint32 const maxLevel = step.get<uint32>("max_level", 255);
+            float const minHomeDistance = step.get<float>("min_home_distance", 0.0f);
             return std::count_if(creatures.begin(), creatures.end(),
-                [](Creature* creature) { return creature->IsInWorld() && creature->IsAlive(); });
+                [minLevel, maxLevel, minHomeDistance](Creature* creature)
+                {
+                    return creature->IsInWorld() && creature->IsAlive()
+                        && creature->GetLevel() >= minLevel && creature->GetLevel() <= maxLevel
+                        && (minHomeDistance == 0.0f
+                            || creature->GetExactDist2d(creature->GetHomePosition()) >= minHomeDistance);
+                });
         }
         if (metric == "carried_money")
             return player->GetMoney();

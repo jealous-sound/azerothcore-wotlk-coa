@@ -150,7 +150,8 @@ METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item'
                  'type_mask', 'hit_mask', 'spell_type_mask',
                  'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
                  'row', 'offset', 'skip_strings', 'from_end', 'x', 'y', 'min_required_level', 'max_required_level',
-                 'flat_coefficient_modifier', 'dominant_stat', 'off_stat'}
+                 'flat_coefficient_modifier', 'dominant_stat', 'off_stat',
+                 'min_level', 'max_level', 'min_home_distance'}
 ACTIONS = {
     'stop_attack': ({'actor'}, {'actor'}),
     'set_moving': ({'actor', 'enabled'}, {'actor', 'enabled'}),
@@ -602,6 +603,20 @@ def validate(scenario):
                 require(step['actor'] in player_ids, f'{where}: dungeon/loot metric needs a player')
             if metric in {'nearby_creature_template', 'nearby_creature_max_health'}:
                 number(step.get('entry'), f'{where}.entry', 1, 2**32 - 1, True)
+            if metric == 'nearby_creature_count':
+                require(step['actor'] in player_ids, f'{where}: creature count needs a player')
+                number(step.get('entry'), f'{where}.entry', 1, 2**32 - 1, True)
+            for field in ('min_level', 'max_level', 'min_home_distance'):
+                if field in step:
+                    require(metric == 'nearby_creature_count',
+                            f'{where}: {field} only applies to nearby creature counts')
+                    if field == 'min_home_distance':
+                        number(step[field], f'{where}.{field}', 0)
+                    else:
+                        number(step[field], f'{where}.{field}', 1, 255, True)
+            if metric == 'nearby_creature_count':
+                require(step.get('min_level', 1) <= step.get('max_level', 255),
+                        f'{where}: creature level bounds are reversed')
             if metric == 'lfg_state':
                 require(step['actor'] in player_ids, f'{where}: LFG state metric needs a player')
             if metric == 'lfg_dungeon_disabled':

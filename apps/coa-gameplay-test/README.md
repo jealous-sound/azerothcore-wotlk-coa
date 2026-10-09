@@ -891,6 +891,10 @@ in-instance restrictions. `map_id` and `map_difficulty` observe the current map 
 selected difficulty template. `loot_gear_item_level` returns the first unlooted weapon/armor item's level in
 the current loot window (zero if absent). The three `vanilla-dungeons-*` scenarios use these to check
 all 19 map/mode pairs per tier and a real VanCleef killing blow, without a GM access bypass.
+`nearby_creature_count` requires a player and `entry`, and counts living creatures in the same phase within
+60 yards. Optional `min_level` and `max_level` filter their native levels; `min_home_distance` keeps creatures
+at least that many yards from their own home positions (2D). This can observe movement of native summons
+without creating or controlling them.
 `nearby_gameobject_state` takes `entry` and returns the state of the nearest such gameobject within 20 yards
 (0 open, 1 closed, 99 none).
 ## Evidence boundaries
