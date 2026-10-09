@@ -5474,8 +5474,9 @@ public:
             if (!(vanity.CategoryMask & (VANITY_CATEGORY_MOUNTS | VANITY_CATEGORY_COMPANIONS)) && !utilityCompanion)
                 continue;
             if ((!unlockAll && !state.OwnedVanityItems.contains(itemId)) ||
-                std::binary_search(AscensionCollectibles::SigilSpells.begin(),
-                    AscensionCollectibles::SigilSpells.end(), vanity.LearnedSpell) ||
+                (std::binary_search(AscensionCollectibles::SigilSpells.begin(),
+                    AscensionCollectibles::SigilSpells.end(), vanity.LearnedSpell) &&
+                    !state.OwnedVanityItems.contains(itemId)) ||
                 !vanity.LearnedSpell || player->HasSpell(vanity.LearnedSpell) ||
                 !sSpellMgr->GetSpellInfo(vanity.LearnedSpell))
                 continue;
@@ -5525,6 +5526,12 @@ public:
             state->PendingCompanionSpells.clear();
             state->NextCompanionSpell = 0;
         }
+    }
+
+    void OnMailItemObtained(Player* player, uint32 itemId)
+    {
+        if (auto state = GetState(player))
+            CollectItem(player, *state, itemId, true);
     }
 
   void OnItemObtained(Player *player, Item *item) {
@@ -5687,9 +5694,10 @@ public:
     }
 
     if (std::binary_search(AscensionCollectibles::SigilVanityItems.begin(),
-        AscensionCollectibles::SigilVanityItems.end(), itemId))
+        AscensionCollectibles::SigilVanityItems.end(), itemId) &&
+        !state->OwnedVanityItems.contains(itemId))
     {
-        ChatHandler(player->GetSession()).SendSysMessage("Sigil companions are excluded from local grants.");
+        ChatHandler(player->GetSession()).SendSysMessage("That sigil companion is not unlocked on this account.");
         return;
     }
 
@@ -6147,14 +6155,16 @@ private:
     if (_vanityItems.contains(itemId))
       sScriptMgr->OnPlayerCoAProgress(player, CoAProgressEvent::VanityCollected, itemId);
 
-    if (!ascensionCompatConfig.GetConfigValue<bool>(
-            AscensionCompatConfig::UNLOCK_ALL_VANITY) &&
+    if ((!ascensionCompatConfig.GetConfigValue<bool>(
+            AscensionCompatConfig::UNLOCK_ALL_VANITY) ||
+        std::binary_search(AscensionCollectibles::SigilVanityItems.begin(),
+            AscensionCollectibles::SigilVanityItems.end(), itemId)) &&
         _vanityItems.contains(itemId) &&
         state.OwnedVanityItems.insert(itemId).second) {
-      CharacterDatabase.Execute(
-          "INSERT IGNORE INTO `account_vanity_collection` (`account_id`, "
-          "`item_id`) VALUES ({}, {})",
-          state.AccountId, itemId);
+      CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_ACCOUNT_VANITY_COLLECTION);
+      stmt->SetData(0, state.AccountId);
+      stmt->SetData(1, itemId);
+      CharacterDatabase.Execute(stmt);
 
       if (notifyClient)
       {
@@ -6166,10 +6176,10 @@ private:
 
     if (IsBankVanityItem(itemId) && state.OwnedVanityItems.insert(itemId).second)
     {
-      CharacterDatabase.Execute(
-          "INSERT IGNORE INTO `account_vanity_collection` (`account_id`, "
-          "`item_id`) VALUES ({}, {})",
-          state.AccountId, itemId);
+      CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_ACCOUNT_VANITY_COLLECTION);
+      stmt->SetData(0, state.AccountId);
+      stmt->SetData(1, itemId);
+      CharacterDatabase.Execute(stmt);
 
       if (notifyClient)
       {
@@ -7547,6 +7557,7 @@ public:
             "AscensionCompatPlayerScript",
             {PLAYERHOOK_ON_LOGIN, PLAYERHOOK_ON_LOGOUT, PLAYERHOOK_ON_UPDATE, PLAYERHOOK_ON_SAVE,
              PLAYERHOOK_ON_AFTER_SET_VISIBLE_ITEM_SLOT, PLAYERHOOK_ON_EQUIP, PLAYERHOOK_ON_DELETE,
+             PLAYERHOOK_ON_TAKE_MAIL_ITEM,
              PLAYERHOOK_ON_STORE_NEW_ITEM, PLAYERHOOK_ON_CREATE_ITEM,
              PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST,
              PLAYERHOOK_ON_PLAYER_IS_CLASS, PLAYERHOOK_ON_LEVEL_CHANGED,
@@ -7863,6 +7874,11 @@ public:
     {
         if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
             AscensionCollectionService::Instance().OnQuestRewarded(player, quest);
+    }
+
+    void OnPlayerTakeMailItem(Player* player, Mail const*, uint32 itemEntry) override
+    {
+        AscensionCollectionService::Instance().OnMailItemObtained(player, itemEntry);
     }
 
   void OnPlayerStoreNewItem(Player *player, Item *item,

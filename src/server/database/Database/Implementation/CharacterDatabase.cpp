@@ -23,6 +23,67 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     if (!m_reconnecting)
         m_stmts.resize(MAX_CHARACTERDATABASE_STATEMENTS);
 
+    PrepareStatement(CHAR_INS_ACCOUNT_VANITY_COLLECTION,
+        "INSERT IGNORE INTO account_vanity_collection (account_id, item_id) VALUES (?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_LOTTERY_RECENT_WINNERS,
+        "SELECT winner_name, gold_copper, winner_tickets, house_win, complimentary_tickets FROM coa_lottery_winner "
+        "ORDER BY drawn_at DESC, round_id DESC LIMIT 5", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_SEL_LOTTERY_WINNER_IDENTITY,
+        "SELECT name, account FROM characters WHERE guid = ? AND deleteDate IS NULL "
+        "AND account <> 0 AND name <> ''", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_INS_LOTTERY_WINNER,
+        "INSERT INTO coa_lottery_winner (round_id, drawn_at, winner_guid, winner_account_id, winner_name, "
+        "gold_copper, bonus_item, bonus_item_name, winner_tickets, total_tickets, payout_mail_id, "
+        "house_win, destroyed_copper, "
+        "admin_forced, complimentary_tickets) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_LOTTERY_STORAGE,
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() "
+        "AND table_name IN ('coa_lottery_round', 'coa_lottery_entry', 'coa_lottery_winner', 'coa_lottery_control')",
+        CONNECTION_SYNCH);
+    PrepareStatement(CHAR_SEL_LOTTERY_ROUND,
+        "SELECT id, ends_at, pot, seed, contribution_percent, duration_seconds, bonus_item, fake_tickets, "
+        "paused, paused_remaining FROM coa_lottery_round "
+        "WHERE active = 1", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_SEL_LOTTERY_ENTRIES,
+        "SELECT e.guid, e.tickets FROM (SELECT 1) AS sentinel LEFT JOIN "
+        "(SELECT le.guid, le.tickets FROM coa_lottery_entry le INNER JOIN characters c ON c.guid = le.guid "
+        "WHERE le.round_id = ? AND c.deleteDate IS NULL AND c.account <> 0 AND c.name <> '') "
+        "AS e ON 1 = 1 ORDER BY e.guid", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_INS_LOTTERY_ROUND,
+        "INSERT INTO coa_lottery_round (id, active, ends_at, pot, seed, contribution_percent, "
+        "duration_seconds, bonus_item, fake_tickets) "
+        "VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_LOTTERY_POT,
+        "UPDATE coa_lottery_round SET pot = ? WHERE id = ? AND active = 1", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPSERT_LOTTERY_ENTRY,
+        "INSERT INTO coa_lottery_entry (round_id, guid, tickets, spent_copper, pot_copper) VALUES (?, ?, ?, ?, ?) "
+        "ON DUPLICATE KEY UPDATE tickets = tickets + VALUES(tickets), "
+        "spent_copper = spent_copper + VALUES(spent_copper), pot_copper = pot_copper + VALUES(pot_copper)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_LOTTERY_END,
+        "UPDATE coa_lottery_round SET ends_at = ? WHERE id = ? AND active = 1", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_COMPLETE_LOTTERY_ROUND,
+        "UPDATE coa_lottery_round SET active = NULL, winner_guid = ?, payout_mail_id = ? "
+        "WHERE id = ? AND active = 1", CONNECTION_ASYNC);
+
+    PrepareStatement(CHAR_SEL_LOTTERY_CONTROL,
+        "SELECT enabled, auto_start FROM coa_lottery_control WHERE id = 1", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_UPD_LOTTERY_CONTROL,
+        "UPDATE coa_lottery_control SET enabled = ?, auto_start = ? WHERE id = 1", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_LOTTERY_PAUSE,
+        "UPDATE coa_lottery_round SET paused = ?, paused_remaining = ?, ends_at = ? "
+        "WHERE id = ? AND active = 1", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_LOTTERY_NEXT_ID,
+        "SELECT CAST(COALESCE(MAX(id), 0) + 1 AS UNSIGNED) FROM coa_lottery_round", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_SEL_LOTTERY_ADMIN_ENTRIES,
+        "SELECT e.guid, e.tickets, e.spent_copper, e.pot_copper, c.name, c.account, c.deleteDate "
+        "FROM (SELECT 1) AS sentinel LEFT JOIN coa_lottery_entry e ON e.round_id = ? "
+        "LEFT JOIN characters c ON c.guid = e.guid ORDER BY e.tickets DESC, e.guid ASC", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_DEL_LOTTERY_ENTRY,
+        "DELETE FROM coa_lottery_entry WHERE round_id = ? AND guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_CANCEL_LOTTERY_ROUND,
+        "UPDATE coa_lottery_round SET active = NULL WHERE id = ? AND active = 1", CONNECTION_ASYNC);
+
     // Read-only safety gate for the unregistered, never-saved Create probe.
     PrepareStatement(CHAR_SEL_FRESH_CHECK_GUID_COUNT, "SELECT COUNT(*) FROM characters WHERE guid BETWEEN ? AND ?", CONNECTION_SYNCH);
 
