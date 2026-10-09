@@ -65,6 +65,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "AscensionCompatOpcodes.h"
+#include "AscensionSpecLoot.h"
 #include "CoADungeonCompletion.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
@@ -77,6 +78,7 @@
 #include <set>
 #include <sstream>
 #include <cstring>
+#include <iterator>
 #include <tuple>
 #include <unordered_map>
 
@@ -837,6 +839,21 @@ namespace
         return pool.empty() ? 0 : pool[urand(0, uint32(pool.size()) - 1)];
     }
 
+    // A random item the player can wear, preferring the active specialization's
+    // primary stats like Dungeon Spoils and Callboard Caches do.
+    uint32 RandomForSpecialization(Player const* player, std::vector<uint32> const& pool)
+    {
+        std::vector<uint32> wearable;
+        std::copy_if(pool.begin(), pool.end(), std::back_inserter(wearable), [player](uint32 entry)
+        {
+            ItemTemplate const* item = sObjectMgr->GetItemTemplate(entry);
+            return item && player->CanUseItem(item) == EQUIP_ERR_OK &&
+                (!item->GetSkill() || player->GetSkillValue(item->GetSkill()));
+        });
+        return RandomOf(AscensionSpecLoot::PreferSpecialization(player, wearable.empty() ? pool : wearable,
+            [](uint32 entry) { return sObjectMgr->GetItemTemplate(entry); }));
+    }
+
     // ---------------------------------------------------------------- champions
 
     // Mythic Champions (80227 vanilla, 80228 TBC, 80229 WotLK): from MythicPlus.Champion.MinLevel (14 on the live
@@ -1568,7 +1585,8 @@ public:
 };
 
 // Mythical Cache (Mythic 1-12): one random Mythic+ item of that level from any
-// dungeon, at most MythicPlus.Caches.WeeklyCap opened per week. Dungeon Spoils
+// dungeon, favouring the opener's specialization, at most
+// MythicPlus.Caches.WeeklyCap opened per week. Dungeon Spoils
 // (Heroic/Mythic): one or two random Heroic/Mythic dungeon items.
 class coa_mythic_plus_cache : public ItemScript
 {
@@ -1599,7 +1617,7 @@ public:
                     weekly.caches, WeeklyCacheCap());
                 return true;
             }
-            rewards.push_back(RandomOf(g_mythicItems[uint32(itr - MYTHICAL_CACHES.begin()) + 1]));
+            rewards.push_back(RandomForSpecialization(player, g_mythicItems[uint32(itr - MYTHICAL_CACHES.begin()) + 1]));
         }
 
         std::erase(rewards, 0u);
