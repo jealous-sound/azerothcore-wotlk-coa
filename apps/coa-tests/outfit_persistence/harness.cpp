@@ -86,13 +86,14 @@ struct Database
 
     CharacterDatabaseTransaction BeginTransaction() { return std::make_shared<Transaction>(); }
 
-    void CompleteNext()
+    void CompleteNext(std::size_t index = 0)
     {
         Job job;
         {
             std::lock_guard lock(mutex);
-            job = std::move(jobs.front());
-            jobs.pop_front();
+            auto selected = jobs.begin() + index;
+            job = std::move(*selected);
+            jobs.erase(selected);
         }
         if (!fail)
         {
@@ -184,6 +185,17 @@ struct Player
     WorldSession* GetSession() { return &session; }
 };
 
+Player* ConnectedPlayer = nullptr;
+
+namespace ObjectAccessor
+{
+Player* FindConnectedPlayer(ObjectGuid guid)
+{
+    return ConnectedPlayer && ConnectedPlayer->session.player && ConnectedPlayer->GetGUID() == guid
+        ? ConnectedPlayer : nullptr;
+}
+}
+
 // ACTUAL_COLLECTION_STATE
 
 std::shared_ptr<PlayerCollectionState> NewState()
@@ -200,6 +212,9 @@ struct CollectionService
     std::shared_ptr<PlayerCollectionState> state = NewState();
     std::mutex _packetMutex;
     std::map<uint32, std::deque<WorldPacket>> _pendingPackets;
+    std::mutex _outfitMutex;
+    std::unordered_set<uint32> _pendingOutfitCommits;
+    AsyncCallbackProcessor<TransactionCallback> _outfitCallbacks;
     std::shared_ptr<PlayerCollectionState> GetState(Player*) { return state; }
     static std::size_t ExpectedReplies(WorldPacket const&) { return 1; }
     void ProcessPendingAppearanceAdds(Player*, uint32) { }
@@ -220,6 +235,8 @@ struct CollectionService
     // ACTUAL_DELETE
     // ACTUAL_TAKE_CLIENT_PACKETS
     // ACTUAL_UPDATE
+    // ACTUAL_PENDING_OUTFIT
+    // ACTUAL_PROCESS_OUTFITS
 };
 
 void Require(bool condition, char const* message)
@@ -235,10 +252,17 @@ int main()
 {
     CollectionService service;
     Player player;
+    ConnectedPlayer = &player;
     std::string const name = "Knight's armor";
     OutfitKey const key{1, name};
     OutfitKey const otherCharacter{2, name};
     CharacterDatabase.persisted[otherCharacter] = "99";
+
+    auto processCallbacks = [&]()
+    {
+        service.ProcessOutfitCallbacks();
+        player.session.callbacks.ProcessReadyCallbacks();
+    };
 
     auto save = [&](std::string const& outfit, std::vector<uint32> const& appearances)
     {
@@ -247,14 +271,14 @@ int main()
         for (uint32 appearance : appearances)
             packet << appearance;
         service.HandleSaveOutfit(&player, packet);
-        player.session.callbacks.ProcessReadyCallbacks();
+        processCallbacks();
     };
     auto remove = [&]()
     {
         WorldPacket packet;
         packet << name;
         service.HandleDeleteOutfit(&player, packet);
-        player.session.callbacks.ProcessReadyCallbacks();
+        processCallbacks();
     };
 
     CharacterDatabase.hold = true;
@@ -270,14 +294,14 @@ int main()
     bool const returnedBeforeCommit = handler.wait_for(1s) == std::future_status::ready;
     if (returnedBeforeCommit)
     {
-        player.session.callbacks.ProcessReadyCallbacks();
+        processCallbacks();
         Require(player.session.response.empty(), "a pending commit cannot send a success or failure reply");
         Require(!CharacterDatabase.persisted.contains({1, "Delayed outfit"}), "the delayed transaction is still uncommitted");
         Require(!service.state->Outfits.contains("Delayed outfit"), "a pending save cannot update the cache");
     }
     CharacterDatabase.CompleteNext();
     handler.get();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(returnedBeforeCommit, "a pending database commit must not block the player update handler");
     CharacterDatabase.hold = false;
     service.state = NewState();
@@ -347,23 +371,23 @@ int main()
     Require(CharacterDatabase.jobs.size() == 1 && service._pendingPackets.at(1).size() == 2,
         "only the first of several queued outfit mutations reaches the database");
     service.OnPlayerUpdate(&player, 1);
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(CharacterDatabase.jobs.size() == 1 && service._pendingPackets.at(1).size() == 2,
         "later updates retain queued outfit mutations while a commit is pending");
     Require(player.session.response.empty(), "pending outfit updates send no acknowledgement");
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(service.state->Outfits.at(name) == std::vector<uint32>{42}, "the first queued save commits before replacement");
     service.OnPlayerUpdate(&player, 1);
     Require(service._pendingPackets.at(1).size() == 1, "replacement leaves deletion queued until it commits");
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(service.state->Outfits.at(name) == std::vector<uint32>{99}, "the replacement commits in request order");
     service.OnPlayerUpdate(&player, 1);
     Require(service._pendingPackets.empty(), "deletion is submitted after replacement commits");
     Require(CharacterDatabase.persisted.contains(key), "pending deletion retains the committed outfit");
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(!service.state->Outfits.contains(name) && !CharacterDatabase.persisted.contains(key),
         "the final queued delete wins in both cache and database");
 
@@ -372,13 +396,13 @@ int main()
     service.OnPlayerUpdate(&player, 1);
     CharacterDatabase.fail = true;
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
-    Require(!service.state->OutfitCommitPending && player.session.response == "SAVE_APPEARANCE_OUTFIT_UNKNOWN",
+    processCallbacks();
+    Require(!service.HasPendingOutfitCommit(player.GetGUID()) && player.session.response == "SAVE_APPEARANCE_OUTFIT_UNKNOWN",
         "a failed callback releases the next queued request");
     CharacterDatabase.fail = false;
     service.OnPlayerUpdate(&player, 1);
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(service.state->Outfits.at(name) == std::vector<uint32>{99}, "the next queued save recovers after commit failure");
 
     player.session.response.clear();
@@ -387,7 +411,7 @@ int main()
     player.session.player = nullptr;
     service.state.reset();
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(player.session.response.empty() && !oldState->Outfits.contains("Logged out"),
         "a completion after logout does not reply or update a discarded collection");
     player.session.player = &player;
@@ -396,7 +420,7 @@ int main()
     save("Other character", {42});
     player.guid.value = 2;
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(player.session.response.empty() && !service.state->Outfits.contains("Other character"),
         "a completion cannot reply to a different character in the session");
     player.guid.value = 1;
@@ -405,22 +429,75 @@ int main()
     oldState = service.state;
     service.state = NewState();
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(player.session.response.empty() && !service.state->Outfits.contains("Relogged") &&
             !oldState->Outfits.contains("Relogged"),
         "a stale completion cannot update either state after the same character relogs");
 
     save(name, {42});
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     player.session.response.clear();
     remove();
     oldState = service.state;
     service.state = NewState();
     service.state->Outfits[name] = {99};
     CharacterDatabase.CompleteNext();
-    player.session.callbacks.ProcessReadyCallbacks();
+    processCallbacks();
     Require(player.session.response.empty() && service.state->Outfits.at(name) == std::vector<uint32>{99} &&
             oldState->Outfits.contains(name), "a stale delete callback cannot erase a relogged collection");
-    std::cout << "PASS: nonblocking commits, ordered outfit mutations, commit-before-acknowledgement, crash durability and stale callback guards\n";
+    service.state = NewState();
+    service.state->Outfits[name] = {42};
+    CharacterDatabase.persisted[key] = "42";
+    player.session.response.clear();
+    queueDelete();
+    service.OnPlayerUpdate(&player, 1);
+    oldState = service.state;
+    player.session.player = nullptr;
+    Player reconnected;
+    ConnectedPlayer = &reconnected;
+    service.state = NewState();
+    service.state->Outfits[name] = {42};
+    queueSave(99);
+    service.OnPlayerUpdate(&reconnected, 1);
+    bool const serializedAcrossReconnect = CharacterDatabase.jobs.size() == 1;
+    if (!serializedAcrossReconnect)
+    {
+        CharacterDatabase.CompleteNext(1);
+        service.ProcessOutfitCallbacks();
+        reconnected.session.callbacks.ProcessReadyCallbacks();
+    }
+    CharacterDatabase.CompleteNext();
+    processCallbacks();
+    if (serializedAcrossReconnect)
+    {
+        service.OnPlayerUpdate(&reconnected, 1);
+        CharacterDatabase.CompleteNext();
+        service.ProcessOutfitCallbacks();
+        reconnected.session.callbacks.ProcessReadyCallbacks();
+    }
+    Require(reconnected.session.response == "SAVE_APPEARANCE_OUTFIT_OK" &&
+            reconnected.session.persistedAtResponse.at(key) == "99", "the reconnected session receives a committed save acknowledgement");
+    Require(CharacterDatabase.persisted.contains(key) && CharacterDatabase.persisted.at(key) == "99",
+        "an old session's delayed delete cannot discard a newer acknowledged save");
+    Require(serializedAcrossReconnect && player.session.response.empty() && oldState->Outfits.at(name) == std::vector<uint32>{42},
+        "reconnected writes wait for old commits without replying to the old session or updating its discarded cache");
+    reconnected.session.player = nullptr;
+    ConnectedPlayer = nullptr;
+
+    {
+        Player destroyed;
+        ConnectedPlayer = &destroyed;
+        service.state = NewState();
+        queueSave(42);
+        service.OnPlayerUpdate(&destroyed, 1);
+        destroyed.session.player = nullptr;
+        ConnectedPlayer = nullptr;
+        service.state.reset();
+    }
+    CharacterDatabase.CompleteNext();
+    service.ProcessOutfitCallbacks();
+    Require(!service.HasPendingOutfitCommit(ObjectGuid{1}) && service._outfitCallbacks.Empty(),
+        "destroying a disconnected session cannot abandon its callback or keep the character's write queue blocked");
+    std::cout << "PASS: nonblocking commits, ordered outfit mutations across reconnects, commit-before-acknowledgement, crash durability and stale callback guards\n";
 }

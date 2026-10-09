@@ -40,6 +40,13 @@ def main():
         harness = harness.replace('// ACTUAL_' + marker, method(source, signature))
     collection = source[source.index('class AscensionCollectionService'):]
     harness = harness.replace('// ACTUAL_UPDATE', method(collection, 'void OnPlayerUpdate(Player *player, uint32 diff) {'))
+    for marker, signature, fallback in (
+        ('PENDING_OUTFIT', 'bool HasPendingOutfitCommit(ObjectGuid guid)',
+         'bool HasPendingOutfitCommit(ObjectGuid) { return state && state->OutfitCommitPending; }'),
+        ('PROCESS_OUTFITS', 'void ProcessOutfitCallbacks()', 'void ProcessOutfitCallbacks() { }'),
+    ):
+        harness = harness.replace('// ACTUAL_' + marker,
+                                  method(collection, signature) if signature in collection else fallback)
     compiler = shutil.which(os.environ.get('CXX', 'cl.exe' if os.name == 'nt' else 'c++'))
     assert compiler, 'Enable a C++20 compiler.'
     with tempfile.TemporaryDirectory(prefix='coa-outfit-persistence-') as directory:

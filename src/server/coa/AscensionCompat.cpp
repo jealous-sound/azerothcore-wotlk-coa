@@ -67,6 +67,7 @@
 #include "AscensionPooledVitality.h"
 #include "AscensionCreaturePreset.h"
 #include "AscensionItemAppearanceAliases.h"
+#include "AsyncCallbackProcessor.h"
 #include "Bag.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
@@ -88,6 +89,7 @@
 #include "LocalLevelScaling.h"
 #include "Log.h"
 #include "Map.h"
+#include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Player.h"
@@ -509,7 +511,6 @@ struct PlayerCollectionState {
   std::unordered_set<uint32> OwnedVanityItems;
   std::array<uint32, APPEARANCE_CATEGORY_COUNT> ActiveAppearances{};
   std::map<std::string, std::vector<uint32>> Outfits;
-  bool OutfitCommitPending = false;
   std::vector<uint32> PendingAppearanceAdds;
   std::size_t NextPendingAppearanceAdd = 0;
   uint32 AppearanceAddTimer = 0;
@@ -5256,8 +5257,7 @@ public:
   void OnPlayerUpdate(Player *player, uint32 diff) {
     if (ReceivesClientRequests(player))
     {
-      auto state = GetState(player);
-      for (WorldPacket &packet : TakeClientPackets(player->GetSession()->GetAccountId(), state && state->OutfitCommitPending))
+      for (WorldPacket &packet : TakeClientPackets(player->GetSession()->GetAccountId(), HasPendingOutfitCommit(player->GetGUID())))
         HandleClientPacket(player, packet);
     }
 
@@ -5275,6 +5275,18 @@ public:
         else
             state->CosmeticTimer -= diff;
     }
+  }
+
+  bool HasPendingOutfitCommit(ObjectGuid guid)
+  {
+    std::lock_guard lock(_outfitMutex);
+    return _pendingOutfitCommits.contains(guid.GetCounter());
+  }
+
+  void ProcessOutfitCallbacks()
+  {
+    std::lock_guard lock(_outfitMutex);
+    _outfitCallbacks.ProcessReadyCallbacks();
   }
 
     void OnCosmeticCancelled(Player* player, uint32 spellId)
@@ -6590,15 +6602,15 @@ private:
     statement->SetData(2, serialized);
     CharacterDatabaseTransaction transaction = CharacterDatabase.BeginTransaction();
     transaction->Append(statement);
-    WorldSession* const session = player->GetSession();
     ObjectGuid const guid = player->GetGUID();
-    state->OutfitCommitPending = true;
-    session->AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(transaction)).AfterComplete(
-        [this, session, guid, state, name = std::move(name), appearances = std::move(appearances)](bool success) mutable
+    std::lock_guard lock(_outfitMutex);
+    _pendingOutfitCommits.insert(guid.GetCounter());
+    _outfitCallbacks.AddCallback(CharacterDatabase.AsyncCommitTransaction(transaction)).AfterComplete(
+        [this, guid, state, name = std::move(name), appearances = std::move(appearances)](bool success) mutable
         {
-            state->OutfitCommitPending = false;
-            Player* current = session->GetPlayer();
-            if (!current || current->GetGUID() != guid || GetState(current) != state)
+            _pendingOutfitCommits.erase(guid.GetCounter());
+            Player* current = ObjectAccessor::FindConnectedPlayer(guid);
+            if (!current || GetState(current) != state)
                 return;
 
             if (success)
@@ -6628,15 +6640,15 @@ private:
     statement->SetData(1, name);
     CharacterDatabaseTransaction transaction = CharacterDatabase.BeginTransaction();
     transaction->Append(statement);
-    WorldSession* const session = player->GetSession();
     ObjectGuid const guid = player->GetGUID();
-    state->OutfitCommitPending = true;
-    session->AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(transaction)).AfterComplete(
-        [this, session, guid, state, name = std::move(name)](bool success)
+    std::lock_guard lock(_outfitMutex);
+    _pendingOutfitCommits.insert(guid.GetCounter());
+    _outfitCallbacks.AddCallback(CharacterDatabase.AsyncCommitTransaction(transaction)).AfterComplete(
+        [this, guid, state, name = std::move(name)](bool success)
         {
-            state->OutfitCommitPending = false;
-            Player* current = session->GetPlayer();
-            if (!current || current->GetGUID() != guid || GetState(current) != state)
+            _pendingOutfitCommits.erase(guid.GetCounter());
+            Player* current = ObjectAccessor::FindConnectedPlayer(guid);
+            if (!current || GetState(current) != state)
                 return;
 
             if (success)
@@ -6782,6 +6794,10 @@ private:
   std::unordered_map<uint32, std::deque<WorldPacket>> _pendingPackets;
   std::mutex _rejectedPacketMutex;
   std::unordered_map<uint32, uint32> _rejectedPackets;
+
+  std::mutex _outfitMutex;
+  std::unordered_set<uint32> _pendingOutfitCommits;
+  AsyncCallbackProcessor<TransactionCallback> _outfitCallbacks;
 
   std::mutex _stateMutex;
   std::unordered_map<uint32, std::shared_ptr<PlayerCollectionState>>
@@ -8264,7 +8280,12 @@ public:
   AscensionCompatWorldScript()
       : WorldScript("AscensionCompatWorldScript",
                     {WORLDHOOK_ON_BEFORE_CONFIG_LOAD, WORLDHOOK_ON_AFTER_CONFIG_LOAD, WORLDHOOK_ON_STARTUP,
-                     WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE}) {}
+                     WORLDHOOK_ON_LOAD_CUSTOM_DATABASE_TABLE, WORLDHOOK_ON_UPDATE}) {}
+
+  void OnUpdate(uint32) override
+  {
+    AscensionCollectionService::Instance().ProcessOutfitCallbacks();
+  }
 
   void OnBeforeConfigLoad(bool reload) override {
     ascensionCompatConfig.Initialize(reload);
