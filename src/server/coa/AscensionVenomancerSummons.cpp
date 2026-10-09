@@ -24,6 +24,14 @@ constexpr uint32 MushroomEntry = 506018;
 constexpr uint32 BroodTrapEntry = 52121;
 constexpr uint32 SpiderlingEntry = 999298;
 constexpr uint32 ScarabEntry = 999299;
+Unit* OwnerTarget(Player* player)
+{
+    if (Unit* victim = player->GetVictim(); victim && victim->IsAlive() && player->IsValidAttackTarget(victim))
+        return victim;
+    Unit* selected = player->GetSelectedUnit();
+    return selected && selected->IsAlive() && player->IsValidAttackTarget(selected) &&
+        player->IsInCombatWith(selected) ? selected : nullptr;
+}
 }
 void Mushroom(Player* player, Position const& position, float coefficient, bool big)
 {
@@ -198,6 +206,9 @@ struct npc_ascension_venomancer_summon : public ScriptedAI
                 return;
             }
             Unit* target = ObjectAccessor::GetUnit(*me,command);
+            if (me->GetEntry() == FungarianEntry)
+                if (Unit* assisted = OwnerTarget(player))
+                    target = assisted;
             if (!target || !target->IsAlive() || !player->IsValidAttackTarget(target))
                 target = player->GetVictim();
             if (me->GetEntry() == BroodTrapEntry)

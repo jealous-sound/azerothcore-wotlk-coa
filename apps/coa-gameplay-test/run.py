@@ -61,7 +61,7 @@ METRICS = {
     'pet_native_display', 'race', 'pet_scale', 'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading',
     'pet_spell_bar_count',
     'owned_creature_count', 'owned_creature_weapon_damage_min',
-    'owned_creature_spell_hit_chance', 'owned_creature_attackable',
+    'owned_creature_spell_hit_chance', 'owned_creature_attackable', 'owned_creature_victim',
     'charm_entry', 'charm_aura_stacks', 'controls_self', 'viewpoint_entry', 'seer_entry', 'private_instance',
     'dynamic_object', 'dynamic_object_duration_ms', 'gossip_options', 'gossip_option_text',
     'owned_gameobject_count', 'gameobject_remaining_ms', 'gameobject_display', 'gameobject_scale', 'at_homebind',
@@ -741,10 +741,12 @@ def validate(scenario):
                     number(step['ranged_weapon_subclass'], f'{where}.ranged_weapon_subclass', 0, 20, True)
             if metric in {'owned_creature_scale', 'owned_creature_visible', 'owned_creature_display',
                           'owned_creature_weapon_damage_min',
-                          'owned_creature_spell_hit_chance', 'owned_creature_attackable'}:
+                          'owned_creature_spell_hit_chance', 'owned_creature_attackable', 'owned_creature_victim'}:
                 require('entry' in step, f'{where}: metric needs creature entry')
             if metric == 'owned_creature_attackable':
                 require(step.get('target') in actor_ids, f'{where}: metric needs the attacking unit')
+            if metric == 'owned_creature_victim':
+                require(step.get('target') in actor_ids, f'{where}: metric needs the expected victim')
             if metric == 'system_message_contains':
                 require(isinstance(step.get('text'), str) and step['text'].strip(),
                         f'{where}: metric needs the text to look for')
@@ -816,7 +818,7 @@ def validate(scenario):
                           'bank_shows', 'system_messages', 'system_message_contains', 'whispers_received',
                           'challenge_start_responses', 'challenge_start_code', 'owned_creature_scale', 'cast_failure',
                           'owned_creature_weapon_damage_min', 'owned_creature_spell_hit_chance',
-                          'owned_creature_attackable',
+                          'owned_creature_attackable', 'owned_creature_victim',
                           'pet_entry', 'pet_aura_stacks', 'pet_is_banker', 'pet_display', 'pet_native_display', 'pet_scale',
                           'pet_knows_spell', 'pet_distance', 'pet_casting', 'pet_loading',
                           'owned_creature_count', 'charm_entry',

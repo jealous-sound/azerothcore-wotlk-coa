@@ -809,6 +809,8 @@ It reads that creature's native spell hit modifier. `set_aura` accepts `owned_en
 of owned creature within 100 yards and the player's phase; it cannot also select `pet: true`.
 `owned_creature_attackable` requires the owning player, a present creature `entry` and a `target` unit.
 It reads whether that target can attack the summon through the native `IsValidAttackTarget` check.
+`owned_creature_victim` requires the owning player, a present creature `entry` and a `target` unit.
+It returns one while that unit is the summon's current victim.
 `pet_casting` requires the player's present native pet and reads its casting flag and active non-melee spell.
 Use it to observe channel completion before submitting another ordinary pet cast;
 aura expiry is a separate event.

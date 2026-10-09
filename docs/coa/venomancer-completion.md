@@ -41,7 +41,8 @@ only `rev_20260910_14_venomancer_completion.sql` with matching source.
   events are not predicted. The release retains target mitigation and cannot receive caster scaling
   twice. Only the owner's Venomancer poison auras are removed. Dispel/death do not release the budget.
 - Venoxis follows its active thirty-percent damage/attack-haste description. The Fungarian performs
-  one authored Nature spell pulse at its attack interval, without an additional auto-attack hit.
+  one authored Nature spell pulse at its attack interval, without an additional auto-attack hit. It
+  turns to the owner's current enemy: the owner's attack victim, or a selected unit the owner fights.
 - Unspecified summon survival/attack values are local: health 20% and armor 50% of owner; small-pet
   weapon damage uses the 0.05–0.075 AP interval. All authoritative spell coefficients remain separate.
 
