@@ -198,9 +198,12 @@ public:
             for (Creature* device : Devices(player))
                 if (device->GetEntry() == 467073)
                 {
-                    Position position = device->GetPosition();
                     for (uint8 n = 0; n < 3; ++n)
+                    {
+                        Position position = device->GetPosition();
+                        device->MovePositionToFirstCollision(position,1.5f,n * 2 * float(M_PI) / 3);
                         Summon(player,target,500535,&position);
+                    }
                     break;
                 }
         if (id == 802052 && player->HasAura(300636))
