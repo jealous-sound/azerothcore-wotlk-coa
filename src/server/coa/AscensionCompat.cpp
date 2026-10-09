@@ -3252,9 +3252,6 @@ public:
 
             player->ModifyPower(static_cast<Powers>(rule.PowerType),
                 rule.InternalAmount);
-            LOG_DEBUG("coa", "Periodic damage tick of spell {} gave {} power {} to {} (aura {}), now {}",
-                spellInfo->Id, rule.InternalAmount, uint32(rule.PowerType), player->GetName(),
-                rule.RequiredAuraSpellId, player->GetPower(static_cast<Powers>(rule.PowerType)));
             changed = true;
         }
 
