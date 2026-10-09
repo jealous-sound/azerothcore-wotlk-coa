@@ -11,6 +11,7 @@
 #include "SpellInfo.h"
 #include "UnitScript.h"
 #include "WorldScript.h"
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -19,6 +20,7 @@ namespace
     std::unordered_map<uint32, float> Multipliers;
     std::unordered_set<uint32> Bosses;
     std::unordered_map<uint32, float> CreatureMultipliers;
+    std::unordered_map<uint32, float> HealShares;
 
     constexpr int32 TrashCapHeroic = 460;
     constexpr int32 TrashCapMythic = 600;
@@ -101,6 +103,16 @@ public:
             } while (result->NextRow());
         }
         LOG_INFO("server.loading", ">> Loaded {} CoA dungeon creature damage multipliers", CreatureMultipliers.size());
+        HealShares.clear();
+        if (QueryResult result = WorldDatabase.Query("SELECT entry, heal_pct FROM coa_dungeon_creature_heal"))
+        {
+            do
+            {
+                Field* fields = result->Fetch();
+                HealShares[fields[0].Get<uint32>()] = fields[1].Get<float>();
+            } while (result->NextRow());
+        }
+        LOG_INFO("server.loading", ">> Loaded {} CoA dungeon creature heal shares", HealShares.size());
     }
 };
 
@@ -108,7 +120,20 @@ class CoADungeonSpellDamage final : public UnitScript
 {
 public:
     CoADungeonSpellDamage() : UnitScript("CoADungeonSpellDamage", true,
-        { UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK, UNITHOOK_MODIFY_MELEE_DAMAGE }) { }
+        { UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN, UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK, UNITHOOK_MODIFY_MELEE_DAMAGE, UNITHOOK_MODIFY_HEAL_RECEIVED }) { }
+
+    void ModifyHealReceived(Unit* healer, Unit* receiver, uint32& gain, SpellInfo const*) override
+    {
+        if (HealShares.empty() || !healer || !receiver)
+            return;
+        Creature const* creature = healer->ToCreature();
+        if (!creature || creature->GetCharmerOrOwnerPlayerOrPlayerItself() || !creature->GetMap() || !creature->GetMap()->IsDungeon())
+            return;
+        auto itr = HealShares.find(creature->GetEntry());
+        if (itr == HealShares.end())
+            return;
+        gain = uint32(receiver->GetMaxHealth() * itr->second);
+    }
 
     void ModifyMeleeDamage(Unit*, Unit* attacker, uint32& damage) override
     {
