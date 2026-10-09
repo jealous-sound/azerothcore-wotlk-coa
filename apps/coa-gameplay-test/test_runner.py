@@ -15,6 +15,14 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_player_account_sharing_requires_an_earlier_player(self):
+        self.scenario['players'].append({'id': 'alt', 'race': 1, 'class': 1, 'account_of': 'caster'})
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for owner in ('alt', 'missing', 'target', '', 1, None):
+            self.scenario['players'][-1]['account_of'] = owner
+            with self.subTest(owner=owner), self.assertRaisesRegex(ValueError, 'earlier player'):
+                run.validate(self.scenario)
+
     def test_duel_arbiter_packet_field_requires_a_player(self):
         step = {'action': 'client_packet', 'actor': 'caster', 'opcode': 364,
                 'fields': [{'duel_arbiter': 'caster'}], 'consumed': False}

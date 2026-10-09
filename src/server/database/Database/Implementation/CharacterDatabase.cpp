@@ -23,6 +23,18 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     if (!m_reconnecting)
         m_stmts.resize(MAX_CHARACTERDATABASE_STATEMENTS);
 
+    PrepareStatement(CHAR_SEL_COA_ACCOUNT_CHALLENGE_COMPLETION,
+        "SELECT 1 FROM coa_account_challenge_completion WHERE account = ? AND challengeId = ? AND level = ? LIMIT 1",
+        CONNECTION_SYNCH);
+    PrepareStatement(CHAR_SEL_COA_ACCOUNT_CHALLENGE_COMPLETIONS,
+        "SELECT challengeId, level, startTime, completeTime FROM coa_account_challenge_completion WHERE account = ?",
+        CONNECTION_SYNCH);
+    PrepareStatement(CHAR_INS_COA_ACCOUNT_CHALLENGE_COMPLETION,
+        "INSERT IGNORE INTO coa_account_challenge_completion (account, challengeId, level, completeTime, startTime) "
+        "VALUES (?, ?, ?, UNIX_TIMESTAMP(), ?)", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_DEL_COA_ACCOUNT_CHALLENGE_COMPLETIONS,
+        "DELETE FROM coa_account_challenge_completion WHERE account = ?", CONNECTION_SYNCH);
+
     PrepareStatement(CHAR_INS_ACCOUNT_VANITY_COLLECTION,
         "INSERT IGNORE INTO account_vanity_collection (account_id, item_id) VALUES (?, ?)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_SEL_LOTTERY_RECENT_WINNERS,

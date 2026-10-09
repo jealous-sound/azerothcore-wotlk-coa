@@ -77,6 +77,15 @@ namespace CoAChallenges
             "startTime INT UNSIGNED NOT NULL DEFAULT 0, "
             "PRIMARY KEY (guid, challengeId, level)) "
             "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        CharacterDatabase.DirectExecute(
+            "CREATE TABLE IF NOT EXISTS coa_account_challenge_completion ("
+            "account INT UNSIGNED NOT NULL, "
+            "challengeId INT UNSIGNED NOT NULL, "
+            "level INT UNSIGNED NOT NULL DEFAULT 1, "
+            "completeTime INT UNSIGNED NOT NULL DEFAULT 0, "
+            "startTime INT UNSIGNED NOT NULL DEFAULT 0, "
+            "PRIMARY KEY (account, challengeId, level)) "
+            "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         // NOTE: no second CREATE for coa_character_challenge here (it would be
         // dead: the first CREATE above wins the IF NOT EXISTS). hunger/thirst/
         // startTime are backfilled by the ALTERs below.
