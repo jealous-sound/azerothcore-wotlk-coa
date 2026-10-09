@@ -80,7 +80,7 @@ def main():
         ('SEND_SECURE_ADDON_LIST', method_or(compat, 'void SendSecureAddonList(WorldSession* session)', '')),
         ('QUEUE_CLIENT_PACKET', method(compat, 'void QueueClientPacket(uint32 accountId')),
         ('REJECT_CLIENT_PACKET', method_or(compat, 'void RejectClientPacket(uint32 accountId', '')),
-        ('TAKE_CLIENT_PACKETS', method_or(compat, 'std::vector<WorldPacket> TakeClientPackets(uint32 accountId)', '')),
+        ('TAKE_CLIENT_PACKETS', method_or(compat, 'std::vector<WorldPacket> TakeClientPackets(uint32 accountId', '')),
         ('ON_PLAYER_UPDATE', method_in(compat, 'class AscensionCollectionService',
                                        'void OnPlayerUpdate(Player *player, uint32 diff) {')),
         ('HANDLE_CLIENT_PACKET', method(compat, 'void HandleClientPacket(Player *player')),

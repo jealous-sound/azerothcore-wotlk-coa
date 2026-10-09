@@ -342,6 +342,7 @@ World* sWorld = &world;
 
 struct PlayerCollectionState
 {
+    bool OutfitCommitPending = false;
     std::unordered_set<uint32> OwnedVanityItems;
     uint32 CosmeticTimer = 0;
 };
@@ -758,6 +759,12 @@ void TestWorldEntryResend()
     WorldPacket remove(0x06A0, 8);
     remove << std::string("Plate");
     bool const outfitsConsumed = !Receive(session, save) && !Receive(session, remove);
+    service.OnPlayerUpdate(&player, 1);
+    Check(outfitsConsumed && service.AppearancePackets ==
+            std::vector<uint16>{0x0697, 0x06A3, 0x0697, 0x069E},
+        "a queued outfit save leaves the following delete for a later update");
+    Check(service.TakeClientPackets(session.GetAccountId(), true).empty(),
+        "a pending outfit commit leaves the next outfit request queued");
     service.OnPlayerUpdate(&player, 1);
     Check(outfitsConsumed && service.AppearancePackets ==
             std::vector<uint16>{0x0697, 0x06A3, 0x0697, 0x069E, 0x06A0},

@@ -13,7 +13,7 @@
     },
     {
       "action": "assert", "label": "The save is accepted", "actor": "wearer", "metric": "server_packet_contains",
-      "opcode": 1695, "text": "SAVE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 1000
+      "opcode": 1695, "row": 1163280723, "text": "SAVE_APPEARANCE_OUTFIT_OK", "equals": 1, "within_ms": 1000
     },
     {
       "action": "client_packet", "label": "Save an outfit with an uncollected appearance", "actor": "wearer",
@@ -21,7 +21,7 @@
     },
     {
       "action": "assert", "label": "The uncollected outfit is refused", "actor": "wearer",
-      "metric": "server_packet_contains", "opcode": 1695, "text": "SAVE_APPEARANCE_OUTFIT_UNKNOWN", "equals": 1,
+      "metric": "server_packet_contains", "opcode": 1695, "row": 1163280723, "text": "SAVE_APPEARANCE_OUTFIT_UNKNOWN", "equals": 1,
       "within_ms": 1000
     },
     { "action": "relog", "label": "Reload the character and its saved outfit", "actor": "wearer" },
@@ -34,12 +34,21 @@
       "metric": "server_packet_contains", "opcode": 1693, "text": "Stolen", "equals": 0
     },
     {
+      "action": "snapshot", "label": "Count save responses before replacement", "actor": "wearer",
+      "metric": "server_packets", "opcode": 1695, "row": 1163280723, "save_as": "save_responses"
+    },
+    {
       "action": "client_packet", "label": "Replace the saved outfit with one category", "actor": "wearer",
       "opcode": 1694, "fields": [ { "string": "Knight's armor" }, { "u32": 1 }, { "u32": 0 } ]
     },
     {
+      "action": "assert", "label": "The replacement sends its own completion response", "actor": "wearer",
+      "metric": "server_packets", "opcode": 1695, "row": 1163280723, "relative_to": "save_responses",
+      "equals": 1, "within_ms": 1000
+    },
+    {
       "action": "assert", "label": "The replacement is accepted", "actor": "wearer",
-      "metric": "server_packet_contains", "opcode": 1695, "text": "SAVE_APPEARANCE_OUTFIT_OK", "equals": 1
+      "metric": "server_packet_contains", "opcode": 1695, "row": 1163280723, "text": "SAVE_APPEARANCE_OUTFIT_OK", "equals": 1
     },
     { "action": "relog", "label": "Reload after replacing the outfit", "actor": "wearer" },
     {
