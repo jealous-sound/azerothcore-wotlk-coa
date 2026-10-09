@@ -505,7 +505,7 @@ def configure_arguments(context):
 def line_table_debug_arguments(platform=sys.platform):
     if platform != 'darwin':
         return []
-    flags = '-O2 -gline-tables-only -DNDEBUG'
+    flags = '-O2 -g1 -DNDEBUG'
     return [f'-DCMAKE_C_FLAGS_RELWITHDEBINFO={flags}', f'-DCMAKE_CXX_FLAGS_RELWITHDEBINFO={flags}']
 
 

@@ -65,10 +65,10 @@ when ninja exists:
 
 On macOS the default also passes `-DREADLINE_LIBRARY` and `-DREADLINE_INCLUDE_DIR` for Homebrew readline when it
 is installed; without them CMake finds the SDK's libedit stub and the worldserver does not compile. It also sets
-`CMAKE_C_FLAGS_RELWITHDEBINFO` and `CMAKE_CXX_FLAGS_RELWITHDEBINFO` to `-O2 -gline-tables-only -DNDEBUG`: object
-files shrink by an order of magnitude and archives and links get faster, while crash backtraces keep file and line
-but lose class names and arguments. A `cmake_args` setting replaces all of these defaults, so repeat the flags
-there when they are wanted.
+`CMAKE_C_FLAGS_RELWITHDEBINFO` and `CMAKE_CXX_FLAGS_RELWITHDEBINFO` to `-O2 -g1 -DNDEBUG` (Clang treats `-g1` as
+`-gline-tables-only`, and GCC accepts it too): object files shrink by an order of magnitude and archives and links
+get faster, while crash backtraces keep file and line but lose class names and arguments. A `cmake_args`
+setting replaces all of these defaults, so repeat the flags there when they are wanted.
 
 The macOS CMake configuration also creates static libraries with `/usr/bin/libtool -static` instead of
 `ar` and `ranlib` (Ninja and Makefile generators; a cached `CMAKE_CXX_CREATE_STATIC_LIBRARY` overrides it), and

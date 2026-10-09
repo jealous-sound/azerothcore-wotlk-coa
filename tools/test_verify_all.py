@@ -249,10 +249,12 @@ class BuildTests(WorkspaceTest):
         self.assertEqual(verify_all.readline_arguments('linux', (prefix,)), [])
         self.assertEqual(verify_all.readline_arguments('darwin', (workspace.base / 'absent',)), [])
 
-    def test_macos_configure_keeps_line_tables_instead_of_full_debug_info(self):
-        flags = '-O2 -gline-tables-only -DNDEBUG'
-        self.assertEqual(verify_all.line_table_debug_arguments('darwin'),
-                         [f'-DCMAKE_C_FLAGS_RELWITHDEBINFO={flags}', f'-DCMAKE_CXX_FLAGS_RELWITHDEBINFO={flags}'])
+    def test_macos_configure_keeps_line_tables_with_a_level_every_compiler_accepts(self):
+        flags = '-O2 -g1 -DNDEBUG'
+        arguments = verify_all.line_table_debug_arguments('darwin')
+        self.assertEqual(arguments, [f'-DCMAKE_C_FLAGS_RELWITHDEBINFO={flags}',
+                                     f'-DCMAKE_CXX_FLAGS_RELWITHDEBINFO={flags}'])
+        self.assertFalse(any('-gline-tables-only' in argument for argument in arguments))
         self.assertEqual(verify_all.line_table_debug_arguments('linux'), [])
         self.assertEqual(verify_all.line_table_debug_arguments('win32'), [])
 
