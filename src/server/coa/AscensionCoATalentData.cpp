@@ -3,6 +3,7 @@
 #include "AscensionCoATalentData.h"
 #include "ClientDBC.h"
 #include "DBCStores.h"
+#include "ItemTemplate.h"
 #include "Log.h"
 #include <algorithm>
 #include <cctype>
@@ -48,6 +49,7 @@ enum AdvancementDwordField : uint32
 enum ChrSpecsDwordField : uint32
 {
     CHR_SPECS_ID              = 0,
+    CHR_SPECS_PRIMARY_STAT    = 8,
     CHR_SPECS_SIGNATURE_SPELL = 24,
     CHR_SPECS_IDENTITY_ENTRY  = 28,
 };
@@ -80,6 +82,27 @@ struct Node
     uint32 Group;
     bool ClassTab;
 };
+
+std::array<uint8, 3> PrimaryStats(ClientDBC::Record const& record)
+{
+    static std::array<std::pair<std::string_view, uint8>, 5> const statByName = { {
+        { "Agility", ITEM_MOD_AGILITY },
+        { "Strength", ITEM_MOD_STRENGTH },
+        { "Intellect", ITEM_MOD_INTELLECT },
+        { "Spirit", ITEM_MOD_SPIRIT },
+        { "Stamina", ITEM_MOD_STAMINA },
+    } };
+
+    std::array<uint8, 3> stats{};
+    for (uint32 index = 0; index < stats.size(); ++index)
+    {
+        std::string_view const name = record.GetString(CHR_SPECS_PRIMARY_STAT + index);
+        for (auto const& [statName, stat] : statByName)
+            if (name == statName)
+                stats[index] = stat;
+    }
+    return stats;
+}
 
 bool IsFreeChoice(Node const& node)
 {
@@ -166,7 +189,7 @@ bool LoadCoATalentData()
 
     std::map<std::pair<std::string, std::string>, uint32> specByClassAndTab;
     std::unordered_map<uint32, uint32> identitySpecByEntry;
-    std::vector<std::tuple<uint32, uint32, uint32>> specIdentities;
+    std::vector<std::tuple<uint32, uint32, uint32, std::array<uint8, 3>>> specIdentities;
     for (uint32 row = 0; row < specs.GetRecordCount(); ++row)
     {
         ClientDBC::Record record = specs.GetRecord(row);
@@ -176,7 +199,8 @@ bool LoadCoATalentData()
         if (uint32 identity = record.GetUInt32(CHR_SPECS_IDENTITY_ENTRY))
         {
             identitySpecByEntry[identity] = specId;
-            specIdentities.emplace_back(specId, identity, record.GetUInt32(CHR_SPECS_SIGNATURE_SPELL));
+            specIdentities.emplace_back(specId, identity, record.GetUInt32(CHR_SPECS_SIGNATURE_SPELL),
+                PrimaryStats(record));
         }
     }
 
@@ -294,7 +318,7 @@ bool LoadCoATalentData()
         CoAAutomaticDependencies.push_back(dependency);
     }
 
-    for (auto const& [specId, identityId, signatureSpellId] : specIdentities)
+    for (auto const& [specId, identityId, signatureSpellId, primaryStats] : specIdentities)
     {
         auto identity = nodeById.find(identityId);
         if (identity == nodeById.end() || identity->second->Entry.SpecId != specId)
@@ -308,7 +332,8 @@ bool LoadCoATalentData()
                 signatureId = node.Entry.EntryId;
                 break;
             }
-        CoASpecializations.push_back({ uint16(specId), identity->second->Entry.ClassId, identityId, signatureId });
+        CoASpecializations.push_back(
+            { uint16(specId), identity->second->Entry.ClassId, identityId, signatureId, primaryStats });
     }
 
     LOG_INFO("coa",

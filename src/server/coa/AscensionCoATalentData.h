@@ -40,6 +40,7 @@ struct CoASpecialization
     std::uint8_t ClassId;
     std::uint32_t IdentityEntryId;
     std::uint32_t SignatureEntryId;
+    std::array<std::uint8_t, 3> PrimaryStats{};
 };
 
 struct CoATalentBudget

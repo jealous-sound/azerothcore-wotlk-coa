@@ -1,6 +1,7 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
 #include "AscensionCacheRewards.h"
 #include "AscensionCompatOpcodes.h"
+#include "AscensionSpecLoot.h"
 #include "Chat.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
@@ -215,20 +216,25 @@ uint32 ResolveGenericTier(Player* player, uint32 cacheItemId)
 bool PickReward(Player* player, CallboardPool const& pool, uint32 averageItemLevel,
     AscensionCacheRewards::Reward& out)
 {
-    std::vector<AscensionCacheRewards::Reward const*> upgrades;
-    std::vector<AscensionCacheRewards::Reward const*> reachable;
     std::vector<AscensionCacheRewards::Reward const*> usable;
     for (AscensionCacheRewards::Reward const& reward : pool)
     {
         ItemTemplate const* proto = sObjectMgr->GetItemTemplate(reward.itemId);
-        if (!proto || player->CanUseItem(proto) != EQUIP_ERR_OK)
+        if (proto && player->CanUseItem(proto) == EQUIP_ERR_OK)
+            usable.push_back(&reward);
+    }
+    usable = AscensionSpecLoot::PreferSpecialization(player, usable,
+        [](AscensionCacheRewards::Reward const* reward) { return sObjectMgr->GetItemTemplate(reward->itemId); });
+
+    std::vector<AscensionCacheRewards::Reward const*> upgrades;
+    std::vector<AscensionCacheRewards::Reward const*> reachable;
+    for (AscensionCacheRewards::Reward const* reward : usable)
+    {
+        if (reward->itemLevel > averageItemLevel + g_itemLevelAllowance)
             continue;
-        usable.push_back(&reward);
-        if (reward.itemLevel > averageItemLevel + g_itemLevelAllowance)
-            continue;
-        reachable.push_back(&reward);
-        if (reward.itemLevel >= averageItemLevel)
-            upgrades.push_back(&reward);
+        reachable.push_back(reward);
+        if (reward->itemLevel >= averageItemLevel)
+            upgrades.push_back(reward);
     }
 
     std::vector<AscensionCacheRewards::Reward const*> const& candidates =

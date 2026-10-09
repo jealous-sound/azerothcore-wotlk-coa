@@ -3,6 +3,7 @@
  */
 
 #include "AscensionCacheRewards.h"
+#include "AscensionSpecLoot.h"
 #include "Containers.h"
 #include "DungeonHealth.h"
 #include "GlobalScript.h"
@@ -21,6 +22,8 @@ namespace
 {
     constexpr uint32 MarkOfTriumph = 1414502;
     constexpr uint32 DungeonSpoils = 2021814;
+    constexpr uint32 DungeonSpoilsHeroic = 1202039;
+    constexpr uint32 DungeonSpoilsMythic = 1027965;
     constexpr uint32 SpoilsLevelWindow = 5;
 
     bool PlayerCanWear(Player const* player, ItemTemplate const* item)
@@ -29,26 +32,39 @@ namespace
             (!item->GetSkill() || player->GetSkillValue(item->GetSkill()));
     }
 
-    std::vector<LootStoreItem*> SpoilsForLevel(Player const* player, std::list<LootStoreItem*> const& entries,
-        bool wearableOnly)
+    bool AlreadyDropped(Loot const& loot, LootStoreItem const* entry)
+    {
+        return std::any_of(loot.items.begin(), loot.items.end(), [entry](LootItem const& dropped)
+        {
+            return dropped.itemid == entry->itemid;
+        });
+    }
+
+    std::vector<LootStoreItem*> SpoilsFor(Player const* player, std::list<LootStoreItem*> const& entries,
+        Loot const& loot, bool levelScaled, bool wearableOnly)
     {
         std::vector<LootStoreItem*> spoils;
         uint32 bestLevel = 0;
         for (LootStoreItem* entry : entries)
         {
             ItemTemplate const* item = sObjectMgr->GetItemTemplate(entry->itemid);
-            if (!item || entry->reference || item->RequiredLevel > player->GetLevel() ||
+            if (!item || entry->reference || AlreadyDropped(loot, entry) ||
+                (levelScaled && item->RequiredLevel > player->GetLevel()) ||
                 (wearableOnly && !PlayerCanWear(player, item)))
                 continue;
             spoils.push_back(entry);
             bestLevel = std::max(bestLevel, item->RequiredLevel);
         }
 
-        std::erase_if(spoils, [bestLevel](LootStoreItem const* entry)
+        if (levelScaled)
+            std::erase_if(spoils, [bestLevel](LootStoreItem const* entry)
+            {
+                return sObjectMgr->GetItemTemplate(entry->itemid)->RequiredLevel + SpoilsLevelWindow < bestLevel;
+            });
+        return AscensionSpecLoot::PreferSpecialization(player, spoils, [](LootStoreItem const* entry)
         {
-            return sObjectMgr->GetItemTemplate(entry->itemid)->RequiredLevel + SpoilsLevelWindow < bestLevel;
+            return sObjectMgr->GetItemTemplate(entry->itemid);
         });
-        return spoils;
     }
 
     bool InDungeonFinderGroup(Player const* player)
@@ -130,15 +146,22 @@ public:
         if (!player || &store != &LootTemplates_Item)
             return true;
         Item const* container = player->GetItemByGuid(loot.containerGUID);
-        if (!container || container->GetEntry() != DungeonSpoils)
+        if (!container || !IsSpoilsBag(container->GetEntry()))
             return true;
 
-        std::vector<LootStoreItem*> spoils = SpoilsForLevel(player, entries, true);
+        bool const levelScaled = container->GetEntry() == DungeonSpoils;
+        std::vector<LootStoreItem*> spoils = SpoilsFor(player, entries, loot, levelScaled, true);
         if (spoils.empty())
-            spoils = SpoilsForLevel(player, entries, false);
+            spoils = SpoilsFor(player, entries, loot, levelScaled, false);
         if (!spoils.empty())
             loot.AddItem(*Acore::Containers::SelectRandomContainerElement(spoils));
         return false;
+    }
+
+private:
+    static bool IsSpoilsBag(uint32 entry)
+    {
+        return entry == DungeonSpoils || entry == DungeonSpoilsHeroic || entry == DungeonSpoilsMythic;
     }
 };
 
