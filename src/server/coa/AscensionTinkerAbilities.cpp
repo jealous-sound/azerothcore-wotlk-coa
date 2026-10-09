@@ -29,6 +29,11 @@ bool Select(uint32 id, SpellInfo const* info)
         default: return false;
     }
 }
+bool TrainingDummy(Unit const* unit)
+{
+    Creature const* creature = unit->ToCreature();
+    return creature && creature->GetScriptName() == "npc_training_dummy";
+}
 void Snapshot(Player* player, Spell* spell)
 {
     if (spell->IsTriggered())
@@ -238,7 +243,7 @@ public:
             return;
         if (target->IsPlayer())
             target->RemoveAurasDueToSpell(560711);
-        if (damage && Named(info,801005) && player->HasAura(805314))
+        if ((damage || TrainingDummy(target)) && Named(info,801005) && player->HasAura(805314))
             if (Aura* tracer = target->GetAura(653247,player->GetGUID()); tracer && tracer->GetStackAmount() >= 10)
                 Cast(player,target,803438);
         if (Nanobots(player,target) && player->HasAura(560734) &&
