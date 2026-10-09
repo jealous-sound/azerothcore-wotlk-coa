@@ -75,11 +75,11 @@ window expiry. These geometry decisions require validation against actual maps a
 Five guarded definitions: Fungarian 45896/display 49116 (Elemental); Mushroom 506018/display 128263; Brood Trap
 52121/display 23058; Spiderling 999298/display 955; Scarab 999299/display 10005. Their native display,
 model and model-info dependencies resolve. The mushroom wears the live Venoshroom display 128263,
-`spells\Druid_Wild_Mushroom_03Hostile.M2`, shipped in the client's patch-N.MPQ.
+`spells\Druid_Wild_Mushroom_03Hostile.M2`, shipped in the client's patch-N.MPQ, at 0.55 scale.
 No DBC or client archive edit is needed.
 
-Primary Mycelial Ring follows its live tooltip: eight mushrooms on its 8 yd circle and four Big Mushrooms
-(503925) in the middle, with its ten-second field. Mushrooms are not attackable. Active Coil is 707234;
+Primary Mycelial Ring follows its client tooltip: twelve mushrooms at random points within the 4 yd radius
+of the Mushroom summon 680764, inside its 8 yd ten-second field. Mushrooms are not attackable. Active Coil is 707234;
 obsolete summon identity 712357 routes to its mushroom behavior instead of reintroducing the unrelated
 archived channel.
 

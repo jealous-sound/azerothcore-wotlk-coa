@@ -1,15 +1,16 @@
 {
   "schema": 1,
-  "name": "Venomancer: Venoshroom mushrooms wear their model, cannot be attacked and Mycelial Ring grows 8 around and 4 big in the middle",
+  "name": "Venomancer: Venoshroom mushrooms wear their model at 0.55 scale, cannot be attacked and Mycelial Ring grows 12 near the caster",
   "contract": [
     "Mushroom summon 680764 creates creature 506018. Every live client creature-cache capture in AscensionDB",
     "(2026-08-06 to 2026-09-10), the Exiles DB and the db.exil.es dump (2026-10-04) give it display 128263,",
     "spells\\Druid_Wild_Mushroom_03Hostile.M2 in both the server and client CreatureDisplayInfo/CreatureModelData,",
     "shipped in the client's patch-N.MPQ. The previous template used 26981, the invisible stalker.",
-    "Mycelial Ring 681056's live tooltip: \"immediately grows 8 Mushrooms in a circle around you and 4 Big Mushroom",
-    "in the middle of the ring\" (AscensionDB, Exiles DB). The ring is 8 yd (681291 radius index 14, 681056 radius",
-    "index 195), so 8 Mushrooms stand on the 8 yd circle and 4 Big Mushrooms (503925) stand within 2.5 yd of the",
-    "caster. Each Mushroom explodes after 2 sec, so all twelve still stand 1.5 sec after the cast and are gone 4 sec later.",
+    "The template keeps its 0.55 display scale, which matches the small mushrooms in live footage of the ring.",
+    "Mycelial Ring 681056's tooltip in the installed client: \"immediately grows 12 Mushrooms in a circle around you\".",
+    "Live footage shows them scattered close around the caster, well inside the 8 yd ring: the Mushroom summon",
+    "680764 places its creature at a random point within radius index 26 (4 yd), so no Mushroom grows beyond 4.5 yd.",
+    "Each Mushroom explodes after 2 sec, so all twelve still stand 1.5 sec after the cast and are gone 4 sec later.",
     "Spore 572869 drops one Mushroom below its target after 10 sec, which must also wear display 128263.",
     "Mushrooms are an untargetable effect of the Venomancer's spells: no hostile unit may attack them."
   ],
@@ -90,30 +91,21 @@
     },
     {
       "action": "assert",
-      "label": "No Mushroom grows beyond the 8 yd ring",
+      "label": "DISCRIMINATING: the Mushroom keeps its small 0.55 scale",
+      "actor": "v",
+      "metric": "owned_creature_scale",
+      "entry": 506018,
+      "min": 0.549,
+      "max": 0.551
+    },
+    {
+      "action": "assert",
+      "label": "DISCRIMINATING: every Mushroom grows within 4 yd of the caster",
       "actor": "v",
       "metric": "owned_creature_count",
       "entry": 506018,
-      "min_distance": 9,
+      "min_distance": 4.5,
       "equals": 0
-    },
-    {
-      "action": "assert",
-      "label": "DISCRIMINATING: eight Mushrooms stand on the ring's circle",
-      "actor": "v",
-      "metric": "owned_creature_count",
-      "entry": 506018,
-      "min_distance": 7.5,
-      "equals": 8
-    },
-    {
-      "action": "assert",
-      "label": "DISCRIMINATING: four Big Mushrooms stand in the middle of the ring",
-      "actor": "v",
-      "metric": "owned_creature_count",
-      "entry": 506018,
-      "min_distance": 2.5,
-      "equals": 8
     },
     {
       "action": "wait",
