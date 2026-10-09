@@ -15,6 +15,16 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_duel_arbiter_packet_field_requires_a_player(self):
+        step = {'action': 'client_packet', 'actor': 'caster', 'opcode': 364,
+                'fields': [{'duel_arbiter': 'caster'}], 'consumed': False}
+        self.scenario['steps'].append(step)
+        self.assertIs(run.validate(self.scenario), self.scenario)
+        for actor in ('target', 'missing', 1):
+            step['fields'] = [{'duel_arbiter': actor}]
+            with self.subTest(actor=actor), self.assertRaisesRegex(ValueError, 'expected a player id'):
+                run.validate(self.scenario)
+
     def test_spell_cast_and_proc_counts_can_share_relative_snapshots(self):
         for measured, captured in (('spell_cast_count', 'spell_proc_count'),
                                    ('spell_proc_count', 'spell_cast_count')):

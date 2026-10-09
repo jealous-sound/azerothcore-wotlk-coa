@@ -627,7 +627,9 @@ void ObserveExtensionPacket(Actor& actor, WorldPacket const& packet)
         packet.GetOpcode() != SMSG_MOVE_UNSET_CAN_FLY && packet.GetOpcode() != SMSG_CONVERT_RUNE &&
         packet.GetOpcode() != SMSG_ADD_RUNE_POWER && packet.GetOpcode() != SMSG_LEARNED_SPELL &&
         packet.GetOpcode() != SMSG_SUPERCEDED_SPELL && packet.GetOpcode() != SMSG_REMOVED_SPELL &&
-        packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE && packet.GetOpcode() != SMSG_MOVE_KNOCK_BACK)
+        packet.GetOpcode() != SMSG_ITEM_QUERY_SINGLE_RESPONSE && packet.GetOpcode() != SMSG_MOVE_KNOCK_BACK &&
+        packet.GetOpcode() != SMSG_DUEL_REQUESTED && packet.GetOpcode() != SMSG_DUEL_COUNTDOWN &&
+        packet.GetOpcode() != SMSG_DUEL_COMPLETE)
         return;
 
     ++actor.extensionPackets[packet.GetOpcode()];
@@ -3894,6 +3896,13 @@ private:
                             request << StabledPetNumber(player, value.get_value<uint32>());
                         else if (kind == "actor_guid")
                             request << GetUnit(value.get_value<std::string>())->GetGUID().GetRawValue();
+                        else if (kind == "duel_arbiter")
+                        {
+                            ObjectGuid const arbiter = GetPlayer(value.get_value<std::string>())
+                                ->GetGuidValue(PLAYER_DUEL_ARBITER);
+                            Require(!arbiter.IsEmpty(), "Packet duel arbiter requires a pending duel");
+                            request << arbiter.GetRawValue();
+                        }
                         else if (kind == "pet_guid")
                         {
                             Pet* pet = GetPlayer(value.get_value<std::string>())->GetPet();

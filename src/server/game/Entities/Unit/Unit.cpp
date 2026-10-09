@@ -1248,7 +1248,8 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
             return 0;
 
         // prevent kill only if killed in duel and killed by opponent or opponent controlled creature
-        if (victim->ToPlayer()->duel->Opponent == attacker || victim->ToPlayer()->duel->Opponent->GetGUID() == attacker->GetOwnerGUID())
+        if (victim->ToPlayer()->duel->Opponent == attacker ||
+            victim->ToPlayer()->duel->Opponent->GetGUID() == attacker->GetCharmerOrOwnerGUID())
             damage = health - 1;
 
         duel_hasEnded = true;
