@@ -254,13 +254,9 @@ void WorldSession::HandleMoveWorldportAck()
     bool allowMount = !mEntry->IsDungeon() || mEntry->IsBattlegroundOrArena();
     if (mInstance)
     {
-        Difficulty diff = GetPlayer()->GetDifficulty(mEntry->IsRaid());
-        if (InstanceSaveMgr::GetResetDelayFor(mEntry->MapID, diff))
-            if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(mEntry->MapID, diff))
-            {
-                uint32 timeleft = uint32(timeReset - GameTime::GetGameTime().count());
-                GetPlayer()->SendInstanceResetWarning(mEntry->MapID, diff, timeleft, true);
-            }
+        // The Ascension client shows the instance welcome only once it has its instance binds, which it asks for
+        // right after loading; HandleQueryInstanceBindsOpcode sends it then.
+        GetPlayer()->CustomData.Set("InstanceWelcomePending", new DataMap::Base());
         allowMount = mInstance->AllowMount;
     }
 
