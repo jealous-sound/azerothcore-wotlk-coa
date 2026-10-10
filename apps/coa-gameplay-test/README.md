@@ -391,6 +391,8 @@ Characters are created and loaded through the existing character creation, enume
 handlers with ordinary player security. A player may set `account_of` to an earlier player id to share that
 fixture's disposable account; otherwise each player gets its own account. This supports account-wide state
 checks through separate socketless character sessions and does not test simultaneous client authentication.
+`client_packet` fields may use `item_guid` with a carried item entry, or `gameobject_guid` with an entry of
+exactly one owned fixture gameobject. Both write the native raw GUID and require the referenced object to exist.
 Optional `location` supplies `map`, `x`, `y`, `z`, `o` for a fixture
 teleport. `location.ignore_access` optionally bypasses entry requirements for a fixture (for example a solo
 raid test), without enabling GM mode during combat. Actors share their lane's phase (`1 << 30` with one lane) to
