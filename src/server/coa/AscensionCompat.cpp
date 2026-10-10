@@ -4595,6 +4595,8 @@ private:
   }
 
   static std::vector<CreatureModelPatchRow> BuildCreatureModelPatchRows() {
+    constexpr uint32 CORRUPTED_GRINNING_REAVER_MODEL = 100161;
+    constexpr uint32 GRINNING_REAVER_SOUND = 2112;
     std::vector<CreatureModelPatchRow> rows;
     ClientDBC clientModels;
     std::filesystem::path const clientDbc =
@@ -4604,14 +4606,17 @@ private:
 
     for (uint32 index = 0; index < clientModels.GetRecordCount(); ++index) {
       ClientDBC::Record const record = clientModels.GetRecord(index);
+      uint32 const modelId = record.GetUInt32(0);
       CreatureModelDataEntry const *entry =
-          sCreatureModelDataStore.LookupEntry(record.GetUInt32(0));
+          sCreatureModelDataStore.LookupEntry(modelId);
       if (!entry)
         continue;
 
-      std::array<std::pair<uint32, uint32>, 5> const serverFields = {{
+      std::array<std::pair<uint32, uint32>, 6> const serverFields = {{
           {1, entry->Flags},
           {4, std::bit_cast<uint32>(entry->Scale)},
+          {13, modelId == CORRUPTED_GRINNING_REAVER_MODEL
+                   ? GRINNING_REAVER_SOUND : record.GetUInt32(13)},
           {14, std::bit_cast<uint32>(entry->CollisionWidth)},
           {15, std::bit_cast<uint32>(entry->CollisionHeight)},
           {16, std::bit_cast<uint32>(entry->MountHeight)}}};
