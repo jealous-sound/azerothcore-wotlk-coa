@@ -255,6 +255,7 @@ enum PlayerHook
     PLAYERHOOK_ON_COA_PROGRESS,
     PLAYERHOOK_ON_GET_GAME_MODE_MASK,
     PLAYERHOOK_ON_AFTER_APPLY_ITEM_MODS,
+    PLAYERHOOK_ON_COA_PRESTIGE,
     PLAYERHOOK_END
 };
 
@@ -1093,6 +1094,8 @@ public:
      * @param value The event's subject: an item, spell, appearance or depth, or 0
      */
     virtual void OnPlayerCoAProgress(Player* /*player*/, CoAProgressEvent /*event*/, uint32 /*value*/) { }
+
+    virtual void OnPlayerCoAPrestige(Player*, CharacterDatabaseTransaction) { }
 
     /**
      * @brief This hook is called to resolve a character's Conquest of Azeroth game mode mask.

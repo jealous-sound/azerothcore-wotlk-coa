@@ -1123,6 +1123,11 @@ void ScriptMgr::OnPlayerCoAProgress(Player* player, CoAProgressEvent event, uint
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_COA_PROGRESS, script->OnPlayerCoAProgress(player, event, value));
 }
 
+void ScriptMgr::OnPlayerCoAPrestige(Player* player, CharacterDatabaseTransaction trans)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_COA_PRESTIGE, script->OnPlayerCoAPrestige(player, trans));
+}
+
 std::optional<uint32> ScriptMgr::OnPlayerGetGameModeMask(Player const* player)
 {
     uint32 mask = 0;

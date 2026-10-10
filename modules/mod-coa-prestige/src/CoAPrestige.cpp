@@ -549,7 +549,8 @@ namespace
 
         MailItems(player, mailed, trans);
         player->SaveToDB(trans, false, false);
-        CharacterDatabase.CommitTransaction(trans);
+        sScriptMgr->OnPlayerCoAPrestige(player, trans);
+        CharacterDatabase.AsyncCommitTransaction(trans).m_future.get();
 
         SendPrestigeLevels(player);
         chat.PSendSysMessage("Chromie winds back time. Prestige {}: reach level {} again to unlock your "
