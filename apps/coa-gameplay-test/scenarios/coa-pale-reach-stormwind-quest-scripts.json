@@ -1,0 +1,277 @@
+{
+  "schema": 1,
+  "name": "Pale Reach and Stormwind Book 1: the flask, the North Gate citizens and the Dunshire millstone credit their quests",
+  "contract": [
+    "White-Glove Mischief (9920010): Little Mickey's Flask 559857 casts Open Flask 365022 in the Petitioner's",
+    "Chamber; opening it credits Petitioner's Chamber 9920003 and turns the flask into Empty Flask 559858.",
+    "Voices at the North Gate (175198): each concerned citizen offers one gossip option while the quest is in",
+    "progress; choosing it credits Concerned Citizen Informed 9920020 once per citizen. After the quest is",
+    "abandoned and taken again, the citizens offer the option again.",
+    "From Grain to Flour (9920021): using the Dunshire Mill millstone 2300641 casts Grinding the Wheat 365012,",
+    "which yields Very Fine and Smooth Flour 559862.",
+    "The quest-giver dialogue, voice lines and chat bubbles are outside this harness's reach."
+  ],
+  "timeout_ms": 120000,
+  "players": [
+    {
+      "id": "envoy",
+      "race": 1,
+      "class": 1,
+      "level": 18
+    }
+  ],
+  "location": {
+    "map": 0,
+    "x": -8314.038,
+    "y": 292.43518,
+    "z": 126.93212,
+    "o": 0
+  },
+  "creatures": [
+    {
+      "id": "baldur",
+      "owner": "envoy",
+      "entry": 164981,
+      "level": 15,
+      "distance": 3,
+      "faction": 12
+    },
+    {
+      "id": "jelena",
+      "owner": "envoy",
+      "entry": 164982,
+      "level": 15,
+      "distance": 4,
+      "faction": 12
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "label": "Let the map and the fixtures settle",
+      "ms": 3000
+    },
+    {
+      "action": "prepare_quest",
+      "label": "fixture: Voices at the North Gate in progress, alone in the log",
+      "actor": "envoy",
+      "quest": 175198,
+      "complete": false
+    },
+    {
+      "action": "gossip_hello",
+      "label": "Talk to Baldur",
+      "actor": "envoy",
+      "target": "baldur"
+    },
+    {
+      "action": "assert",
+      "label": "Baldur offers the message from the House of Nobles",
+      "actor": "envoy",
+      "metric": "gossip_option_text",
+      "index": 0,
+      "text": "The House of Nobles is taking action to resolve the situation.",
+      "equals": 1
+    },
+    {
+      "action": "gossip_select",
+      "label": "Inform Baldur",
+      "actor": "envoy",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "label": "One citizen is informed",
+      "actor": "envoy",
+      "metric": "quest_objective_count",
+      "quest": 175198,
+      "equals": 1
+    },
+    {
+      "action": "gossip_hello",
+      "label": "Talk to Baldur again",
+      "actor": "envoy",
+      "target": "baldur"
+    },
+    {
+      "action": "assert",
+      "label": "An informed citizen offers nothing more",
+      "actor": "envoy",
+      "metric": "gossip_options",
+      "equals": 0
+    },
+    {
+      "action": "gossip_hello",
+      "label": "Talk to Jelena Goret",
+      "actor": "envoy",
+      "target": "jelena"
+    },
+    {
+      "action": "gossip_select",
+      "label": "Inform Jelena Goret",
+      "actor": "envoy",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "label": "Each citizen counts once",
+      "actor": "envoy",
+      "metric": "quest_objective_count",
+      "quest": 175198,
+      "equals": 2
+    },
+    {
+      "action": "client_packet",
+      "label": "Abandon Voices at the North Gate from quest log slot 0",
+      "actor": "envoy",
+      "opcode": 404,
+      "fields": [ { "u8": 0 } ],
+      "consumed": false
+    },
+    {
+      "action": "assert",
+      "label": "Voices at the North Gate left the log",
+      "actor": "envoy",
+      "metric": "quest_status",
+      "quest": 175198,
+      "equals": 0
+    },
+    {
+      "action": "prepare_quest",
+      "label": "Take Voices at the North Gate again",
+      "actor": "envoy",
+      "quest": 175198,
+      "complete": false
+    },
+    {
+      "action": "assert",
+      "label": "The new quest starts with no citizen informed",
+      "actor": "envoy",
+      "metric": "quest_objective_count",
+      "quest": 175198,
+      "equals": 0
+    },
+    {
+      "action": "gossip_hello",
+      "label": "Talk to Baldur after taking the quest again",
+      "actor": "envoy",
+      "target": "baldur"
+    },
+    {
+      "action": "assert",
+      "label": "Baldur offers the message again",
+      "actor": "envoy",
+      "metric": "gossip_options",
+      "equals": 1
+    },
+    {
+      "action": "gossip_select",
+      "label": "Inform Baldur again",
+      "actor": "envoy",
+      "option": 0
+    },
+    {
+      "action": "assert",
+      "label": "The repeated quest credits Baldur",
+      "actor": "envoy",
+      "metric": "quest_objective_count",
+      "quest": 175198,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "label": "fixture: White-Glove Mischief in progress",
+      "actor": "envoy",
+      "quest": 9920010,
+      "complete": false
+    },
+    {
+      "action": "destroy_item",
+      "label": "fixture: remove the Empty Flask the quest fixture grants",
+      "actor": "envoy",
+      "item": 559858
+    },
+    {
+      "action": "assert",
+      "label": "Taking the quest hands over Little Mickey's Flask",
+      "actor": "envoy",
+      "metric": "item_count",
+      "item": 559857,
+      "equals": 1
+    },
+    {
+      "action": "use_item",
+      "label": "Open the flask in the Petitioner's Chamber",
+      "actor": "envoy",
+      "item": 559857,
+      "spell": 365022
+    },
+    {
+      "action": "assert",
+      "label": "The chamber is credited",
+      "actor": "envoy",
+      "metric": "quest_objective_count",
+      "quest": 9920010,
+      "equals": 1,
+      "within_ms": 12000
+    },
+    {
+      "action": "assert",
+      "label": "The flask is used up",
+      "actor": "envoy",
+      "metric": "item_count",
+      "item": 559857,
+      "equals": 0
+    },
+    {
+      "action": "assert",
+      "label": "The Empty Flask is carried",
+      "actor": "envoy",
+      "metric": "item_count",
+      "item": 559858,
+      "equals": 1
+    },
+    {
+      "action": "prepare_quest",
+      "label": "fixture: From Grain to Flour in progress",
+      "actor": "envoy",
+      "quest": 9920021,
+      "complete": false
+    },
+    {
+      "action": "destroy_item",
+      "label": "fixture: remove the flour the quest fixture grants",
+      "actor": "envoy",
+      "item": 559862
+    },
+    {
+      "action": "summon_gameobject",
+      "label": "fixture: the Dunshire Mill millstone",
+      "actor": "envoy",
+      "entry": 2300641
+    },
+    {
+      "action": "use_gameobject",
+      "label": "Turn the millstone",
+      "actor": "envoy",
+      "entry": 2300641
+    },
+    {
+      "action": "assert",
+      "label": "Grinding the Wheat is being cast",
+      "actor": "envoy",
+      "metric": "casting",
+      "equals": 1,
+      "within_ms": 1000
+    },
+    {
+      "action": "assert",
+      "label": "The finished grind yields the flour",
+      "actor": "envoy",
+      "metric": "item_count",
+      "item": 559862,
+      "equals": 1,
+      "within_ms": 15000
+    }
+  ]
+}
