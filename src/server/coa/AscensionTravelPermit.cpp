@@ -1,6 +1,8 @@
 /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+#include "GameObject.h"
 #include "GossipDef.h"
 #include "Item.h"
+#include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -87,6 +89,30 @@ class spell_ascension_travel_permit : public SpellScript
     }
 };
 
+class spell_ascension_homebound_portal : public SpellScript
+{
+    PrepareSpellScript(spell_ascension_homebound_portal);
+
+    void SendToOwnerHearth(SpellEffIndex)
+    {
+        Player* traveller = GetCaster()->ToPlayer();
+        GameObject* portal = GetHitGObj();
+        if (!traveller || !portal)
+            return;
+        Player* owner = ObjectAccessor::FindConnectedPlayer(portal->GetOwnerGUID());
+        if (!owner)
+            return;
+        traveller->TeleportTo(owner->m_homebindMapId, owner->m_homebindX, owner->m_homebindY, owner->m_homebindZ,
+            traveller->GetOrientation());
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_ascension_homebound_portal::SendToOwnerHearth, EFFECT_0,
+            SPELL_EFFECT_DUMMY);
+    }
+};
+
 class item_ascension_travel_permit : public ItemScript
 {
 public:
@@ -112,5 +138,6 @@ public:
 void AddAscensionTravelPermitScripts()
 {
     RegisterSpellScript(spell_ascension_travel_permit);
+    RegisterSpellScript(spell_ascension_homebound_portal);
     new item_ascension_travel_permit();
 }
