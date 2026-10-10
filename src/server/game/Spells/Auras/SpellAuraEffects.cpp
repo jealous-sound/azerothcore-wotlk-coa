@@ -1560,7 +1560,7 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
                 if (!spellInfo || !spellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_PASSIVE | SPELL_ATTR0_DO_NOT_DISPLAY)))
                     continue;
 
-                if (spellInfo->Stances & (1 << (GetMiscValue() - 1)))
+                if (spellInfo->Stances & (uint64(1) << (GetMiscValue() - 1)))
                     target->CastSpell(target, itr->first, true, nullptr, this, target->GetGUID());
             }
 
@@ -1579,7 +1579,7 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
                 if (!spellInfo || !spellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_PASSIVE | SPELL_ATTR0_DO_NOT_DISPLAY)) || spellInfo->HasEffect(SPELL_EFFECT_LEARN_SPELL))
                     continue;
 
-                if (spellInfo->Stances & (1 << (GetMiscValue() - 1)))
+                if (spellInfo->Stances & (uint64(1) << (GetMiscValue() - 1)))
                     target->CastSpell(target, itr->first, true, nullptr, this, target->GetGUID());
             }
 
@@ -1593,7 +1593,7 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
                         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(glyph->SpellId);
                         if (!spellInfo || !spellInfo->HasAttribute(SpellAttr0(SPELL_ATTR0_PASSIVE | SPELL_ATTR0_DO_NOT_DISPLAY)))
                             continue;
-                        if (spellInfo->Stances & (1 << (GetMiscValue() - 1)))
+                        if (spellInfo->Stances & (uint64(1) << (GetMiscValue() - 1)))
                             target->CastSpell(target, glyph->SpellId, TriggerCastFlags(TRIGGERED_FULL_MASK & ~(TRIGGERED_IGNORE_SHAPESHIFT | TRIGGERED_IGNORE_CASTER_AURASTATE)), nullptr, this, target->GetGUID());
                     }
                 }
@@ -1605,7 +1605,7 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
                 [player](uint32 spellId) { return player->HasTalent(spellId, player->GetActiveSpec()); }))
             {
                 SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(24932);
-                if (spellInfo && spellInfo->Stances & (1 << (GetMiscValue() - 1)))
+                if (spellInfo && spellInfo->Stances & (uint64(1) << (GetMiscValue() - 1)))
                     target->CastSpell(target, 24932, true, nullptr, this, target->GetGUID());
             }
             // Improved Barkskin - apply/remove armor bonus due to shapeshift
@@ -1726,7 +1726,7 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
         }
 
         // Use the new aura to see on what stance the target will be
-        uint32 newStance = (1 << ((newAura ? newAura->GetMiscValue() : 0) - 1));
+        uint64 newStance = newAura && newAura->GetMiscValue() > 0 ? uint64(1) << (newAura->GetMiscValue() - 1) : 0;
 
         Unit::AuraApplicationMap& tAuras = target->GetAppliedAuras();
         for (Unit::AuraApplicationMap::iterator itr = tAuras.begin(); itr != tAuras.end();)
