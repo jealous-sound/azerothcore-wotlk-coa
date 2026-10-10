@@ -392,6 +392,7 @@ constexpr uint32 APPEARANCE_ADD_INITIAL_DELAY_MS = 500;
 constexpr uint32 APPEARANCE_LOGIN_RESYNC_DELAY_MS = 3000;
 constexpr std::size_t MAX_QUEUED_EXTENSION_PACKETS = 64;
 constexpr uint32 VANITY_CATEGORY_MOUNTS = 0x04000000;
+constexpr uint32 SPELL_TALENT_LEARNING_CUE = 47292;
 constexpr uint32 VANITY_CATEGORY_COMPANIONS = 0x08000000;
 constexpr uint32 ITEM_WONDROUS_WISDOMBALL = 101169;
 constexpr uint32 ITEM_FIX_O_TRON_5000 = 97330;
@@ -2139,15 +2140,29 @@ public:
       refusal.Entry = applied.EntryId;
       refusal.Rank = applied.Rank;
     }
-    else if (!ApplyKnownEntriesUpload(player, upload, refusal))
-    {
-      LOG_INFO("coa", "Refused known-entries upload of {} record(s) from {}: {} {} {}",
-               upload.size(), player->GetName(), refusal.Result, refusal.Learn, refusal.Detail);
-      if (refusal.Announce)
-        ChatHandler(player->GetSession()).SendSysMessage(refusal.Detail);
-    }
     else
-      refusal.Result = "CA_UPDATE_ENTRIES_OK";
+    {
+      bool const learnsPaidRank = std::any_of(upload.begin(), upload.end(),
+          [player](AscensionCoATalentState::KnownEntry const& item)
+          {
+            AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(item.EntryId);
+            return entry && entry->ClassId == player->getClass() && (entry->AECost || entry->TECost) &&
+                item.Rank > KnownRank(player, *entry);
+          });
+      if (!ApplyKnownEntriesUpload(player, upload, refusal))
+      {
+        LOG_INFO("coa", "Refused known-entries upload of {} record(s) from {}: {} {} {}",
+                 upload.size(), player->GetName(), refusal.Result, refusal.Learn, refusal.Detail);
+        if (refusal.Announce)
+          ChatHandler(player->GetSession()).SendSysMessage(refusal.Detail);
+      }
+      else
+      {
+        refusal.Result = "CA_UPDATE_ENTRIES_OK";
+        if (learnsPaidRank)
+          player->CastSpell(player, SPELL_TALENT_LEARNING_CUE, true);
+      }
+    }
     SendCharacterAdvancementKnownEntries(player);
     WorldPacket result(SMSG_CHARACTER_ADVANCEMENT_UPDATE_ENTRIES_RESULT, 64);
     result << refusal.Result << refusal.Learn << refusal.Entry << refusal.Rank;

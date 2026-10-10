@@ -936,11 +936,12 @@ change. Runner checks cover invalid scenarios, incorrect/partial results, owned-
 partial-clone cleanup, cache reuse/invalidation, ownership and exclusive leases, and the queue protocol with a
 fake server. They do not substitute for building and running the native scenario.
 
-`spell_go_count` counts the actor's native `SMSG_SPELL_GO` packets for `spell`; optional `pet: true`
-selects the current pet, and `entry` instead counts the packets the actor received from any creature of that
+`spell_go_count` counts the actor's native `SMSG_SPELL_GO` packets for `spell`; optional `caster` selects another
+scenario actor, `pet: true` selects the current pet, and `entry` counts packets received from any creature of that
 template, such as its own summoned wards, which are neither pets nor fixtures. Other lanes' creatures are in other
-phases, so `entry` counts only creatures the case's players can see. Invisible triggered spells may omit this
-packet. A cast count proves dispatch, so pair it with effect assertions. It does not test network delivery or
+phases, so `entry` counts only creatures the case's players can see. Select only one of `caster`, `pet`, or `entry`.
+Invisible triggered spells may omit this packet. A cast count proves dispatch, so pair it with effect assertions.
+It does not test network delivery or
 client rendering.
 `spell_hit_bonus_taken` reads the victim aura contribution to the native spell hit calculation for `spell`.
 `rooted` reads the unit's native root state. `spell_healing_taken` queries incoming healing from `target`

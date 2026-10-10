@@ -2239,9 +2239,14 @@ private:
         {
             Require(unit->IsPlayer(), "Cast packets need a player observer");
             auto const entry = step.get_optional<uint32>("entry");
+            auto const namedCaster = step.get_optional<std::string>("caster");
             Require(!entry || !step.get<bool>("pet", false), "Cast query selects either a pet or a creature entry");
+            Require(!namedCaster || (!entry && !step.get_optional<bool>("pet")),
+                "Cast query selects one caster source");
             ObjectGuid caster;
-            if (!entry)
+            if (namedCaster)
+                caster = GetUnit(*namedCaster)->GetGUID();
+            else if (!entry)
             {
                 Unit* source = step.get<bool>("pet", false) ? static_cast<Unit*>(unit->ToPlayer()->GetPet()) : unit;
                 Require(source != nullptr, "Cast query needs a present pet");
