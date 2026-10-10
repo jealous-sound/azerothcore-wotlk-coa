@@ -1,0 +1,80 @@
+-- Crossroads (The Barrens) Ascension quests 255078-255083 and their NPCs, restored from Ascension captures.
+-- Quests: client quest cache, conquest-of-azeroth mode, captured 2026-09-10 (hertigservices/ascension-data); paragraph
+-- breaks from the Dawnrise quest cache capture (2026-09-01). NPCs: client creature cache, same mode and date.
+-- Givers and enders follow the quest texts and NextQuestInChain. Draft: spawns, levels, factions, displays the client
+-- lacks, quest item drops and the 255080 ender (Taz'iri) are not restored yet.
+
+INSERT INTO `quest_template` (`ID`, `QuestType`, `QuestLevel`, `MinLevel`, `QuestSortID`, `RewardNextQuest`,
+  `RewardXPDifficulty`, `RewardMoney`, `RewardMoneyDifficulty`, `Flags`, `RewardItem1`, `RewardAmount1`, `RewardItem2`,
+  `RewardAmount2`, `RewardFactionID1`, `RewardFactionValue1`, `LogTitle`, `LogDescription`, `QuestDescription`,
+  `AreaDescription`, `QuestCompletionLog`, `RequiredNpcOrGo1`, `RequiredNpcOrGo2`, `RequiredNpcOrGo3`,
+  `RequiredNpcOrGoCount1`, `RequiredNpcOrGoCount2`, `RequiredNpcOrGoCount3`, `RequiredItemId1`, `RequiredItemId2`,
+  `RequiredItemCount1`, `RequiredItemCount2`)
+VALUES
+(255078, 2, 13, 9, 17, 255079, 5, 600, 405, 8, 375250, 100, 1397885, 1, 76, 5, 'Play It by Ear', 'Raj’iri wants to dance with her sister, but Naj’iri isn’t in the mood. Maybe some music will help get her off her feet. Collect a centaur windflute from Kolkar Wranglers, and Kolkar Stormers.', 'Ahh, I be feelin’ it in me bones today, mon! De spirits got me feet tappin’ and me heart drummin!$B$BBut me poor sister…she been broodin’ in de shade since sunrise. Won’t smile, won’t sway, won’t even hum a tune. It ain’t right.$B$BWhat we need be music!$B$BI been thinkin’…dem centaur camps nearby? Dey always got dem lightning-callin’ mages chantin’ and stompin’ through de day. Surely dey got an instrument or two lyin’ about.', '', 'Return to Raj''iri at the Crossroads.', 0, 0, 0, 0, 0, 0, 355118, 0, 1, 0),
+(255079, 2, 15, 11, 17, 255080, 5, -300, 0, 8, 375250, 100, 1397885, 1, 76, 5, 'Finding the Rhythm', 'Maybe a flute was the wrong instrument. Gather 5 Hecklefang Hyena skins, 1 Barrens Giraffe Leather, and 3 silver. Then deliver it to Unah to make a drum.', 'Ahh…so de flute weren’t enough to stir her spirit. Shame, mon. It sang sweet, but her heart still be heavy.$B$BStill-we ain’t givin’ up! No, no, we just need somethin’ stronger. Somethin’ louder...a drum! Yes, dat be it!$B$BRhuna, de leatherworker, could stitch one together for us if she had de right materials...would you be willin'' to do dat for me poor old sister?', '', 'Bring the materials to Rhuna in the Barrens along with 3 Silver as payment.', 0, 0, 0, 0, 0, 0, 355119, 355120, 5, 1),
+(255080, 2, 15, 11, 17, 0, 4, 600, 405, 8, 375250, 100, 1397885, 1, 76, 4, 'Dancing to the Beat', 'There’s been a party in the tauren lodge for a while with lots of dancing. Ask the drummer Brumbof, if he has an extra stick he can spare. Acquire the drumstick and deliver it to Taz’iri along with the drum.', 'This drum may be the finest in all of Kalimdor, but without a stick or mallet to strike it with...$B$BBefore you leave, check the lodge across the road, the drummer might have an extra stick lying around.', '', 'Return to Taz''iri at the Crossroads.', 0, 0, 0, 0, 0, 0, 355122, 0, 1, 0),
+(255081, 2, 11, 7, 17, 0, 5, 600, 405, 8, 375250, 100, 1397885, 1, 76, 5, 'Understanding the Scriptures', 'Hearing of the power of the Burning Blade cult, Martin asks you to retrieve some of their demonic scriptures from Burning Blade Acolytes, and Burning Blade Bruisers so he can study them and perhaps learn something of their power.', 'Ah! What opportune timing!$B$BI am in dire need of a capable assistant! Yes, yes… you’ll do nicely.$B$BThe Burning Blade cultists have taken refuge upon the mountain just north of here, I wish to decode their scripture!$B$BI don''t care how you get it, bring me their writings so I-we may harness their power for our own!', '', 'Return to Martin Lesterfield at the Crossroads.', 0, 0, 0, 0, 0, 0, 355123, 0, 8, 0),
+(255082, 2, 14, 10, 17, 255083, 5, 600, 405, 8, 375250, 100, 1397885, 1, 76, 5, 'Killing the Competition', 'Voltzix Sprocketpop wants you to kill Venture Co. forces at the sludge field to the north.', 'Ya know what ain''t good for business? Other goblins also doin'' business!$B$BEspecially in a perfectly good sludge field I was TRYING to use!$B$BVenture ain''t on good terms with the Horde anyways. Or anyone really. Not sure how they''re actually gettin'' money the way they go around makin'' enemies.$B$BWhy don''t ya go take ''em out, I get the sludge field, you all get less hostile forces around your town, and everyone''s happy!', '', 'Return to Voltzix Sprocketpop at the Crossroads.', 3282, 3284, 3285, 6, 6, 6, 0, 0, 0, 0),
+(255083, 2, 16, 12, 17, 0, 5, 600, 405, 8, 375250, 100, 1397885, 1, 76, 5, 'Annihilating the Competition', 'Voltzix Sprocketpop wants you to kill Venture Co. forces at the Boulder Lode Mine to the north.', 'Problem with Venture, they get everywhere!$B$BNow they''re in my mines too! Perfectly good, mines full of very valuable gems, and they decided to help themselves!$B$BYou''ve proven good at takin'' those loses down a peg, go over to that mine and just do what you did last time!', '', 'Return to Voltzix Sprocketpop at the Crossroads.', 3283, 3286, 0, 8, 8, 0, 0, 0, 0, 0)
+ON DUPLICATE KEY UPDATE `QuestType` = VALUES(`QuestType`), `QuestLevel` = VALUES(`QuestLevel`),
+    `MinLevel` = VALUES(`MinLevel`), `QuestSortID` = VALUES(`QuestSortID`),
+    `RewardNextQuest` = VALUES(`RewardNextQuest`), `RewardXPDifficulty` = VALUES(`RewardXPDifficulty`),
+    `RewardMoney` = VALUES(`RewardMoney`), `RewardMoneyDifficulty` = VALUES(`RewardMoneyDifficulty`),
+    `Flags` = VALUES(`Flags`), `RewardItem1` = VALUES(`RewardItem1`), `RewardAmount1` = VALUES(`RewardAmount1`),
+    `RewardItem2` = VALUES(`RewardItem2`), `RewardAmount2` = VALUES(`RewardAmount2`),
+    `RewardFactionID1` = VALUES(`RewardFactionID1`), `RewardFactionValue1` = VALUES(`RewardFactionValue1`),
+    `LogTitle` = VALUES(`LogTitle`), `LogDescription` = VALUES(`LogDescription`),
+    `QuestDescription` = VALUES(`QuestDescription`), `AreaDescription` = VALUES(`AreaDescription`),
+    `QuestCompletionLog` = VALUES(`QuestCompletionLog`), `RequiredNpcOrGo1` = VALUES(`RequiredNpcOrGo1`),
+    `RequiredNpcOrGo2` = VALUES(`RequiredNpcOrGo2`), `RequiredNpcOrGo3` = VALUES(`RequiredNpcOrGo3`),
+    `RequiredNpcOrGoCount1` = VALUES(`RequiredNpcOrGoCount1`),
+    `RequiredNpcOrGoCount2` = VALUES(`RequiredNpcOrGoCount2`),
+    `RequiredNpcOrGoCount3` = VALUES(`RequiredNpcOrGoCount3`), `RequiredItemId1` = VALUES(`RequiredItemId1`),
+    `RequiredItemId2` = VALUES(`RequiredItemId2`), `RequiredItemCount1` = VALUES(`RequiredItemCount1`),
+    `RequiredItemCount2` = VALUES(`RequiredItemCount2`);
+
+DELETE FROM `quest_template_addon` WHERE `ID` IN (255079,255080,255083);
+INSERT INTO `quest_template_addon` (`ID`, `PrevQuestID`) VALUES
+(255079, 255078),
+(255080, 255079),
+(255083, 255082);
+
+INSERT INTO `creature_template` (`entry`, `name`, `subname`, `npcflag`, `type`, `type_flags`, `HealthModifier`,
+  `ManaModifier`)
+VALUES
+(41719, 'Raj''iri', NULL, 2, 7, 0, 1.032, 1),
+(741719, 'Naj''iri', NULL, 0, 7, 0, 0.99072, 1),
+(41739, 'Rhuna', 'Leatherworking Trainer', 2, 7, 134217728, 1.136, 1),
+(741722, 'Martin Lesterfield', 'Scrolls and Oddities', 2, 7, 0, 1.136, 1),
+(753513, 'Brumbof Bramstum', NULL, 0, 7, 0, 2.048, 1),
+(753524, 'Voltzix Sprocketpop', 'Engineering Trainer', 2, 7, 0, 2.048, 1)
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `subname` = VALUES(`subname`), `npcflag` = VALUES(`npcflag`),
+    `type` = VALUES(`type`), `type_flags` = VALUES(`type_flags`), `HealthModifier` = VALUES(`HealthModifier`),
+    `ManaModifier` = VALUES(`ManaModifier`);
+
+DELETE FROM `creature_template_model` WHERE `CreatureID` IN (41719,741719,41739,741722,753513,753524);
+INSERT INTO `creature_template_model` (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`) VALUES
+(41719, 0, 112912, 1, 1),
+(741719, 0, 112911, 1, 1),
+(41739, 0, 256406, 1, 1),
+(741722, 0, 112978, 1, 1),
+(753513, 0, 2129, 1, 1),
+(753524, 0, 919573, 1, 1);
+
+DELETE FROM `creature_queststarter` WHERE `quest` IN (255078,255079,255080,255081,255082,255083);
+INSERT INTO `creature_queststarter` (`id`, `quest`) VALUES
+(41719, 255078),
+(41719, 255079),
+(41739, 255080),
+(741722, 255081),
+(753524, 255082),
+(753524, 255083);
+
+DELETE FROM `creature_questender` WHERE `quest` IN (255078,255079,255080,255081,255082,255083);
+INSERT INTO `creature_questender` (`id`, `quest`) VALUES
+(41719, 255078),
+(41739, 255079),
+(741722, 255081),
+(753524, 255082),
+(753524, 255083);
