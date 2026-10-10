@@ -9054,13 +9054,22 @@ class spell_ascension_wildcard_mount : public SpellScript
 
         std::vector<uint32> known;
         for (AscensionCollectibles::MountWrapper const& entry : AscensionCollectibles::MountWrappers)
-            if (player->HasSpell(entry.SpellId))
+            if (player->HasSpell(entry.SpellId) && (GetSpellInfo()->Id != 93539 ||
+                entry.Flying150 || entry.Flying280 || entry.Flying310))
                 known.push_back(entry.SpellId);
 
         if (known.empty())
             return;
 
-        player->CastSpell(player, known[urand(0, uint32(known.size()) - 1)], true);
+        uint32 const mount = known[urand(0, uint32(known.size()) - 1)];
+        ObjectGuid const owner = player->GetGUID();
+        player->m_Events.AddEventAtOffset([owner, mount]()
+        {
+            Player* player = ObjectAccessor::FindPlayer(owner);
+            if (player && player->IsAlive() && player->IsInWorld() && player->HasSpell(mount) &&
+                !player->IsNonMeleeSpellCast(false, false, true))
+                player->CastSpell(player, mount, false);
+        }, 1ms);
     }
 
     void Register() override
