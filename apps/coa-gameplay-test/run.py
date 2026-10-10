@@ -42,7 +42,7 @@ METRICS = {
     'map_difficulty', 'nearby_creature_template', 'nearby_creature_max_health', 'loot_gear_item_level',
     'position_x', 'position_y', 'position_z',
     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
-    'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled', 'quest_query_reward_choice',
+    'quest_log_sent_level', 'quest_log_sent_xp', 'quest_offer_sent_xp', 'quest_query_scaled', 'quest_query_reward_choice',
     'health', 'health_pct', 'max_health', 'creature_type', 'respawn_remaining', 'power', 'max_power', 'alive', 'combat', 'victim', 'casting', 'level',
     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive', 'aura_visible',
     'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
@@ -97,7 +97,7 @@ METRICS = {
     'aura_amplitude_ms', 'melee_crit_chance', 'dodge_chance', 'parry_chance', 'expertise', 'combat_rating',
     'spell_modifier', 'spell_cast_time_ms', 'client_cast_time_ms', 'client_attributes', 'spell_max_range', 'spell_max_stacks', 'spell_healing_done',
     'aura_crit_chance', 'aura_script_value', 'melee_hit_chance', 'spell_hit_chance', 'spell_power',
-    'spell_done_crit_chance', 'spell_taken_crit_chance', 'spell_done_crit_chance_scripted',
+    'spell_done_crit_chance', 'spell_taken_crit_chance', 'spell_done_crit_chance_scripted', 'ranged_taken_crit_chance',
     'melee_spell_damage_done', 'script_melee_damage_taken',
     'script_spell_damage_taken', 'script_periodic_damage_taken', 'script_heal_received', 'spell_effect_value',
     'block_chance', 'block_value', 'critical_block_chance', 'spell_critical_damage', 'armor_reduced_damage',
@@ -110,7 +110,7 @@ METRICS = {
     'distance', 'spell_proc_count', 'spell_proc_chance', 'aura_proc_rate', 'temporary_spell_replacement',
     'spell_family_flags',
     'creature_loot_quality_rate', 'equipped_gear_loot_rate',
-    'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_u32',
+    'quest_menu_items', 'quest_menu_has', 'player_setting', 'server_packets', 'server_packet_u8', 'server_packet_u32',
     'server_packet_float', 'server_packet_contains',
     'known_entry_rank',
     'pet_autocast_enabled', 'combo_points', 'game_mode_mask', 'owned_creature_spell_proc_count',
@@ -230,7 +230,7 @@ ACTIONS = {
     'reset_talents': ({'actor'}, {'actor'}),
     'add_item': ({'actor', 'item'}, {'actor', 'item', 'count'}),
     'fill_bags': ({'actor'}, {'actor', 'slots'}),
-    'equip': ({'actor', 'item', 'slot'}, {'actor', 'item', 'slot'}),
+    'equip': ({'actor', 'item', 'slot'}, {'actor', 'item', 'slot', 'rejected'}),
     'use_item': ({'actor', 'item', 'spell'}, {'actor', 'item', 'spell', 'target', 'target_item', 'destination'}),
     'use_gameobject': ({'actor', 'entry'}, {'actor', 'entry'}),
     'summon_gameobject': ({'actor', 'entry'}, {'actor', 'entry', 'distance', 'duration_s'}),
@@ -619,7 +619,8 @@ def validate(scenario):
                 require(step['actor'] in player_ids, f'{where}: LFG state metric needs a player')
             if metric == 'lfg_dungeon_disabled':
                 number(step.get('dungeon'), f'{where}.dungeon', 1, 2**24 - 1, True)
-            if metric in {'quest_level', 'quest_xp', 'quest_log_sent_level', 'quest_log_sent_xp', 'quest_query_scaled',
+            if metric in {'quest_level', 'quest_xp', 'quest_log_sent_level', 'quest_log_sent_xp',
+                          'quest_offer_sent_xp', 'quest_query_scaled',
                           'quest_query_reward_choice'}:
                 require(step['actor'] in player_ids and 'quest' in step,
                         f'{where}: quest metric needs a player and quest')
@@ -799,11 +800,12 @@ def validate(scenario):
                 require(isinstance(step.get('source'), str) and step['source'].strip() and 'index' in step,
                         f'{where}: metric needs a setting source and index')
                 number(step['index'], f'{where}.index', 0, 2**16 - 1, True)
-            if metric in {'server_packets', 'server_packet_u32', 'server_packet_float', 'server_packet_contains'}:
+            if metric in {'server_packets', 'server_packet_u8', 'server_packet_u32',
+                          'server_packet_float', 'server_packet_contains'}:
                 number(step.get('opcode'), f'{where}.opcode', 1, 0xFFFF, True)
             if metric == 'action_button_packed':
                 number(step.get('button'), f'{where}.button', 0, 143, True)
-            if metric in {'server_packet_u32', 'server_packet_float'}:
+            if metric in {'server_packet_u8', 'server_packet_u32', 'server_packet_float'}:
                 number(step.get('index', 0), f'{where}.index', 0, 2**16 - 1, True)
                 number(step.get('offset', 0), f'{where}.offset', 0, 2**16 - 1, True)
                 number(step.get('skip_strings', 0), f'{where}.skip_strings', 0, 32, True)
@@ -813,7 +815,7 @@ def validate(scenario):
                 require(not step['from_end'] or (not step.get('offset', 0) and not step.get('skip_strings', 0)),
                         f'{where}: from_end cannot combine with offset or skip_strings')
             if 'row' in step:
-                require(metric in {'server_packets', 'server_packet_u32', 'server_packet_float',
+                require(metric in {'server_packets', 'server_packet_u8', 'server_packet_u32', 'server_packet_float',
                                    'server_packet_contains'},
                         f'{where}: row applies only to captured packet counts, values or text')
                 number(step['row'], f'{where}.row', 0, 2**32 - 1, True)
@@ -876,9 +878,9 @@ def validate(scenario):
                           'ball_carried_count', 'ball_carried_quest',
                           'ball_turn_in_count', 'ball_turn_in_quest',
                           'temporary_spell_replacement', 'quest_menu_items', 'quest_menu_has',
-                          'player_setting', 'server_packets', 'server_packet_u32', 'server_packet_float',
+                          'player_setting', 'server_packets', 'server_packet_u8', 'server_packet_u32', 'server_packet_float',
                           'server_packet_contains',
-                          'quest_log_sent_level', 'quest_log_sent_xp',
+                          'quest_log_sent_level', 'quest_log_sent_xp', 'quest_offer_sent_xp',
                           'player_class', 'cached_class', 'at_login_flag',
                           'wildcard_starter_spells_known', 'action_bar_unknown_spells',
                           'wildcard_spells_known', 'wildcard_cards_pending',
