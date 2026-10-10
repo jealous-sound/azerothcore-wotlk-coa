@@ -9428,6 +9428,8 @@ void AddAscensionCompatScripts() {
   Ascension::ClientItemPatches::Instance().Register(ITEM_HEARTWOOD_KEY);
   RegisterAscensionClientConfig([](AscensionClientConfig& config) {
     config.Booleans.emplace_back("CONFIG_CHARACTER_ADVANCEMENT_BUILD_INSPECT_ENABLED", true);
+    config.Booleans.emplace_back("CONFIG_THROWN_WEAPON_APPEARANCES_ENABLED",
+        ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED));
   });
   RegisterAscensionClientConfig(AppendConfiguredClientConfigs);
   new npc_ascension_training_book();
