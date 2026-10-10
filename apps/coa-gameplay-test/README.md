@@ -808,6 +808,8 @@ resource type, recipient and current pets. The total is the logged nominal gain 
 Player commands retain normal permission and gameplay checks; verify their effects with assertions.
 `owned_creature_count` requires a player and `entry`. It counts living creatures of that entry owned, created or summoned by
 the player, in the same phase and within 100 yards, including summons outside the guardian-pet slot.
+`creator_only: true` restricts that count to creatures whose native creator GUID is the player.
+This observes creator metadata; it does not establish a rendered owner title.
 An optional `spell` restricts the count to creatures with that aura; `caster` can select its aura owner. `min_distance` keeps creatures at least that many yards from the player (2D), and `owner_display: true` those wearing the player's display.
 `ranged_weapon_subclass` (0..20) restricts the count to creatures carrying a weapon of that item subclass
 in their ranged virtual equipment slot; subclass 2 means bows. This observes server equipment, not client rendering.

@@ -3161,11 +3161,13 @@ private:
             player->GetCreatureListWithEntryInGrid(creatures, entry, 100.0f);
             float const minDistance = step.get<float>("min_distance", 0.0f);
             bool const ownerDisplay = step.get<bool>("owner_display", false);
+            bool const creatorOnly = step.get<bool>("creator_only", false);
             auto const rangedWeaponSubclass = step.get_optional<uint32>("ranged_weapon_subclass");
             Require(!rangedWeaponSubclass || *rangedWeaponSubclass < MAX_ITEM_SUBCLASS_WEAPON,
                 "Invalid ranged weapon subclass");
             return std::count_if(creatures.begin(), creatures.end(),
-                [player, spell, caster, minDistance, ownerDisplay, rangedWeaponSubclass](Creature* creature)
+                [player, spell, caster, minDistance, ownerDisplay, creatorOnly,
+                 rangedWeaponSubclass](Creature* creature)
             {
                 if (rangedWeaponSubclass)
                 {
@@ -3175,6 +3177,7 @@ private:
                         return false;
                 }
                 return IsLivingSummonOf(player, creature) && (!spell || creature->GetAura(spell, caster))
+                    && (!creatorOnly || creature->GetCreatorGUID() == player->GetGUID())
                     && player->GetExactDist2d(creature) >= minDistance
                     && (!ownerDisplay || creature->GetDisplayId() == player->GetDisplayId());
             });

@@ -145,8 +145,8 @@ PLAYER_STAT_METRICS = {
 METRIC_FIELDS = {'actor', 'metric', 'spell', 'power', 'caster', 'effect', 'item', 'entry', 'button',
                  'relative_to', 'ratio_to', 'target', 'quest', 'id', 'stat', 'school', 'hand', 'rating', 'op',
                  'base', 'key', 'index', 'pet', 'critical', 'target_pet', 'periodic', 'name', 'text',
-                 'min_distance', 'owner_display', 'ranged_weapon_subclass', 'skill', 'cache', 'table', 'exclude',
-                 'dungeon', 'source', 'opcode', 'from', 'slot', 'achievement', 'title',
+                 'min_distance', 'owner_display', 'creator_only', 'ranged_weapon_subclass', 'skill', 'cache',
+                 'table', 'exclude', 'dungeon', 'source', 'opcode', 'from', 'slot', 'achievement', 'title',
                  'type_mask', 'hit_mask', 'spell_type_mask',
                  'phase_mask', 'trigger_spell', 'trials', 'incoming', 'heal', 'quality',
                  'row', 'offset', 'skip_strings', 'from_end', 'x', 'y', 'min_required_level', 'max_required_level',
@@ -576,6 +576,9 @@ def validate(scenario):
             require(step['value'] <= step['maximum'], f'{where}: health exceeds fixture maximum')
         if action in {'snapshot', 'assert'}:
             metric = step['metric']
+            if 'creator_only' in step:
+                require(metric == 'owned_creature_count', f'{where}: creator_only needs owned_creature_count')
+                require(type(step['creator_only']) is bool, f'{where}: creator_only must be boolean')
             if metric == 'equipped_item':
                 require(step['actor'] in player_ids, f'{where}: equipment metric needs a player')
                 number(step.get('slot'), f'{where}.slot', 0, 18, True)

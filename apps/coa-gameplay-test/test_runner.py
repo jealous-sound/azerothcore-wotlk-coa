@@ -108,6 +108,22 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(target=target), self.assertRaises(ValueError):
                 run.validate(scenario)
 
+    def test_owned_creature_count_creator_filter(self):
+        for value in (False, True, None, 0, 1, 'true'):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['steps'].append({'action': 'assert', 'actor': 'caster', 'metric': 'owned_creature_count',
+                                      'entry': 50301, 'creator_only': value, 'equals': 0})
+            with self.subTest(value=value):
+                if type(value) is bool:
+                    self.assertIs(run.validate(scenario), scenario)
+                else:
+                    with self.assertRaises(ValueError):
+                        run.validate(scenario)
+        scenario['steps'][-1] = {'action': 'assert', 'actor': 'caster', 'metric': 'health',
+                                 'creator_only': True, 'min': 1}
+        with self.assertRaises(ValueError):
+            run.validate(scenario)
+
     def test_profession_fixture_validation(self):
         scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'profession-xp.json')
         self.assertIs(run.validate(scenario), scenario)
