@@ -23,6 +23,7 @@ COA = 'src/server/coa/'
 COA_TESTS = 'apps/coa-tests/'
 NATIVE_DBC = 'src/server/shared/DataStores/'
 CONTENT = 'apps/coa-world-content/'
+EMOJI = 'apps/coa-emoji/'
 CONTROL_FILES = {'tools/check_source.py', 'tools/test_source.py', '.github/workflows/quality.yml'}
 SUITES = {
     'source-tools': {
@@ -62,6 +63,10 @@ SUITES = {
     'world-content': {
         'paths': [CONTENT + '*.py'],
         'commands': [[CONTENT + 'test_validate_content.py'], [CONTENT + 'test_archive.py']],
+    },
+    'chat-emoji': {
+        'paths': [EMOJI + '*.py', EMOJI + '*.lua', EMOJI + '*.json', EMOJI + 'client/*'],
+        'commands': [[EMOJI + 'test_emoji.py']],
     },
     'registrations': {
         'paths': [COA + '*.cpp', COA + '*.h', COA + 'CMakeLists.txt', 'src/server/apps/worldserver/Main.cpp',
