@@ -169,13 +169,11 @@ CoA.ItemScaling.Native = 1
 CoA.ItemScaling.Native.LootLevelOffset = 0
 CoA.ItemScaling.Native.QuestRewards = 1
 
-# LevelKeys stores the client's item key for the level instead of the level itself (level + 2 up to 20,
-# + 3 up to 30, + 4 up to 50, + 5 up to 60, the client's table above), as the Ascension client does;
-# a quest reward then takes the quest's own scaled level, or the key of the player's level.
-# Preview (needs LevelKeys) shows each character the version of an item they would receive: the
-# loot window and corpse level, roll frames, inspect, mail and auctions. Both are read at startup only.
-CoA.ItemScaling.Native.LevelKeys = 0
-CoA.ItemScaling.Native.Preview = 0
+# RebornArmor gives every class but the classless Hero the reborn armor the client shows them: the
+# ladder row's second armor column for a scaled item, ItemAddon.dbc's reborn armor for an authored one
+# (items without that value keep their own armor). The stat reply then carries both columns. With 0,
+# items give their full armor to everyone and the reply repeats it. Needs Native; read at startup only.
+CoA.ItemScaling.Native.RebornArmor = 1
 
 # Automatic progression: hand out the class abilities and rank upgrades for the
 # character's class and level as they level up. Set to 0 to stop that
