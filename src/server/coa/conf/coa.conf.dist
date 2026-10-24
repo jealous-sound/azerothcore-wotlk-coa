@@ -229,6 +229,12 @@ CoA.RealmType = "live"
 
 CoA.ClassModel = "coa"
 
+# Enable spell 86000's passive 15% unmounted running-speed aura on this realm.
+# Stronger ordinary running-speed auras replace its bonus; they do not add to it.
+# Mount, swim and flight speeds are unchanged. Requires a worldserver restart.
+# Opt in for Area 52; leave disabled on other realms to preserve their behavior.
+Ascension.RunSpeedAura.Enable = 0
+
 #
 #    CoA.GameModeMask
 #        Description: Custom game-mode bits sent to the client when a character logs in, which
